@@ -1,0 +1,33 @@
+{
+  "note": "The four applications of the package. Folders are siblings of complete-company. Real and demo use different ports and data folders, so a demo never touches real data.",
+  "apps": [
+    {
+      "key": "mizan", "name": "Mizan", "nameAr": "ميزان",
+      "role": "Accounting, inventory, purchasing, costing", "roleAr": "المحاسبة والمخازن والمشتريات والتكاليف",
+      "folder": "Accounting-sys", "health": "/api/health",
+      "real": { "port": 4800, "launcher": "start.bat", "arguments": [] },
+      "demo": { "port": 4810, "launcher": "start-demo.bat", "arguments": [] }
+    },
+    {
+      "key": "gmes", "name": "GMES", "nameAr": "التصنيع GMES",
+      "role": "Manufacturing execution: work orders, quality, OEE, shipping", "roleAr": "تنفيذ التصنيع: أوامر الشغل والجودة والكفاءة والشحن",
+      "folder": "GMES", "health": "/api/health",
+      "real": { "port": 4700, "launcher": "Start-GMES.bat", "arguments": ["-NoBrowser"] },
+      "demo": { "port": 4701, "launcher": "Start-GMES-Demo.bat", "arguments": ["-NoBrowser"] }
+    },
+    {
+      "key": "hr", "name": "HR-System", "nameAr": "الموارد البشرية",
+      "role": "People, organisation, shifts, attendance, skills", "roleAr": "الأفراد والهيكل والورديات والحضور والمهارات",
+      "folder": "hr-system", "health": "/api/info",
+      "real": { "port": 8766, "launcher": "hr_main.py", "arguments": [] },
+      "demo": { "port": 8790, "launcher": "Start-HR-Demo.bat", "arguments": [] }
+    },
+    {
+      "key": "space", "name": "Space Planner", "nameAr": "مخطط المساحات",
+      "role": "2D/3D layout of halls, lines and warehouses", "roleAr": "تخطيط ثنائي وثلاثي الأبعاد للصالات والخطوط والمخازن",
+      "folder": "3D-Modeling", "health": "/api/health",
+      "real": { "port": 4600, "launcher": "start.bat", "arguments": [] },
+      "demo": { "port": 4600, "launcher": "start.bat", "arguments": [] }
+    }
+  ]
+}

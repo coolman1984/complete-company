@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Complete Company</title>
+<style>
+  :root { --bg: #f5f6f8; --card: #fff; --ink: #1c2230; --muted: #667085; --line: #e3e6eb; --ok: #12a150; --bad: #d92d20; --wait: #f79009; --accent: #1f5eff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 "Segoe UI", Tahoma, system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 16px; padding: 18px 28px; background: var(--card); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 20px; margin: 0; }
+  header .sub { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  button.lang { border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  .banner { margin: 18px 28px 0; padding: 10px 14px; border-radius: 8px; background: #fff7e6; border: 1px solid #fedf89; display: none; }
+  .banner.on { display: block; }
+  main { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; padding: 22px 28px; }
+  a.tile { display: flex; flex-direction: column; gap: 8px; padding: 18px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; transition: box-shadow .15s, border-color .15s; }
+  a.tile:hover { border-color: var(--accent); box-shadow: 0 4px 16px rgba(31, 94, 255, .12); }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .name { font-size: 18px; font-weight: 600; flex: 1; }
+  .light { width: 12px; height: 12px; border-radius: 50%; background: var(--wait); box-shadow: 0 0 0 3px rgba(247, 144, 9, .15); }
+  .light.ok { background: var(--ok); box-shadow: 0 0 0 3px rgba(18, 161, 80, .15); }
+  .light.bad { background: var(--bad); box-shadow: 0 0 0 3px rgba(217, 45, 32, .15); }
+  .role { color: var(--muted); font-size: 13px; min-height: 38px; }
+  .meta { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); padding-top: 8px; }
+  footer { padding: 0 28px 24px; color: var(--muted); font-size: 12px; }
+  [dir="rtl"] body { font-family: "Segoe UI", Tahoma, "Noto Kufi Arabic", sans-serif; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1 data-t="title">Complete Company</h1>
+    <div class="sub" data-t="subtitle">One package for the whole factory — each application keeps its own data and sign-in</div>
+  </div>
+  <div class="spacer"></div>
+  <button class="lang" id="lang">العربية</button>
+</header>
+<div class="banner" id="demo" data-t="demo">Demonstration data — sign in to every application with admin / 123. Real data is never touched.</div>
+<main id="tiles"></main>
+<footer><span data-t="checked">Checked</span>: <span id="checked">—</span></footer>
+<script>
+  const T = {
+    en: { title: 'Complete Company', subtitle: 'One package for the whole factory — each application keeps its own data and sign-in',
+          demo: 'Demonstration data — sign in to every application with admin / 123. Real data is never touched.',
+          checked: 'Checked', running: 'Running', down: 'Not running', starting: 'Checking…', port: 'Port', other: 'العربية' },
+    ar: { title: 'الشركة المتكاملة', subtitle: 'حزمة واحدة للمصنع كله — كل تطبيق يحتفظ ببياناته وتسجيل دخوله',
+          demo: 'بيانات تجريبية — ادخل كل تطبيق بـ admin / 123. البيانات الحقيقية لا تُمس.',
+          checked: 'آخر فحص', running: 'يعمل', down: 'متوقف', starting: 'جارٍ الفحص…', port: 'المنفذ', other: 'English' },
+  };
+  let lang = localStorage.getItem('cc.lang') || 'en';
+  let last = null;
+  const $ = (id) => document.getElementById(id);
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.querySelectorAll('[data-t]').forEach((el) => { el.textContent = T[lang][el.dataset.t]; });
+    $('lang').textContent = T[lang].other;
+    render();
+  }
+
+  function render() {
+    if (!last) return;
+    $('demo').classList.toggle('on', last.demo);
+    $('tiles').replaceChildren(...last.apps.map((a) => {
+      const tile = document.createElement('a');
+      tile.className = 'tile';
+      tile.href = `http://${location.hostname}:${a.port}/`;
+      tile.target = '_blank';
+      tile.rel = 'noopener';
+      const top = document.createElement('div'); top.className = 'top';
+      const name = document.createElement('div'); name.className = 'name'; name.textContent = lang === 'ar' ? a.nameAr : a.name;
+      const light = document.createElement('span'); light.className = 'light ' + (a.ok ? 'ok' : 'bad');
+      light.title = a.ok ? T[lang].running : T[lang].down;
+      top.append(name, light);
+      const role = document.createElement('div'); role.className = 'role'; role.textContent = lang === 'ar' ? a.roleAr : a.role;
+      const meta = document.createElement('div'); meta.className = 'meta';
+      const s = document.createElement('span'); s.textContent = a.ok ? `${T[lang].running} · ${a.ms} ms` : T[lang].down;
+      const p = document.createElement('span'); p.textContent = `${T[lang].port} ${a.port}`;
+      meta.append(s, p);
+      tile.append(top, role, meta);
+      return tile;
+    }));
+    $('checked').textContent = new Date(last.checkedAt).toLocaleTimeString(lang === 'ar' ? 'ar-EG' : 'en-GB');
+  }
+
+  async function refresh() {
+    try { last = await (await fetch('/api/status', { cache: 'no-store' })).json(); render(); } catch { /* the portal itself stopped */ }
+  }
+
+  $('lang').onclick = () => { lang = lang === 'en' ? 'ar' : 'en'; localStorage.setItem('cc.lang', lang); applyLang(); };
+  applyLang();
+  refresh();
+  setInterval(refresh, 5000);
+</script>
+</body>
+</html>
