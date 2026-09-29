@@ -5,7 +5,9 @@
 /** What travels in each direction (plan 01 §1). */
 export const FLOWS = {
   mizanToGmes: ['eco.item.v1', 'eco.warehouse.v1', 'eco.party.v1', 'acc.stock_position.v1', 'acc.sales_order.v1', 'acc.demand_plan.v1', 'acc.purchase_order.v1', 'acc.goods_receipt.v1'],
-  gmesToMizan: ['mes.purchase_requisition.v1', 'mes.supply_plan.v1', 'mes.lot_decision.v1', 'mes.shipment.dispatched.v1'],
+  // production facts are booked natively by Mizan (WP-M4): do not run link-mizan beside a paired Mizan, it would book them twice
+  gmesToMizan: ['mes.purchase_requisition.v1', 'mes.supply_plan.v1', 'mes.lot_decision.v1', 'mes.shipment.dispatched.v1',
+    'mes.material.consumed.v1', 'mes.production.completed.v1', 'mes.production.scrapped.v1', 'mes.work_order.closed.v1'],
   gmesToHr: ['mes.crew_requirement.v1'],
 };
 
@@ -71,7 +73,7 @@ export async function pair(input) {
       if (old) await gmes('DELETE', `/api/eco/peers/${old.id}`);
       return gmes('POST', '/api/eco/peers', { name, url, key, consumer: name, types });
     };
-    await step('GMES sends requisitions, supply plan, lot decisions and shipments to Mizan', async () => (await addGmesPeer('mizan', urls.mizan, mizanKeyForGmes, FLOWS.gmesToMizan), FLOWS.gmesToMizan.length + ' types'));
+    await step('GMES sends requisitions, supply plan, lot decisions, production and shipments to Mizan', async () => (await addGmesPeer('mizan', urls.mizan, mizanKeyForGmes, FLOWS.gmesToMizan), FLOWS.gmesToMizan.length + ' types'));
 
     if (hr) {
       const hrKeyForGmes = await step('HR key for GMES', async () => (await hr('POST', '/api/admin/eco-keys', { name: `gmes-${tag}`, scopes: ['eco.inbox.write'] })).key);
