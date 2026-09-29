@@ -162,7 +162,7 @@ The five repositories are cloned side by side in one folder (`…\GitHub\Complet
 | `complete-company` | launcher, portal, review, research | `plan/` (this), `scenario/` (being written) | WP-P0 |
 | `Accounting-sys` | b5a4b89 | branch `feat/sales-sop` in worktree `_worktrees\mizan-sales` (sales orders, ATP, deliveries, OTD/OTIF, S&OP) · branch `feat/purchasing-eco` in worktree `_worktrees\mizan-eco` (item planning fields, requisitions, USD PO, LC, native eco module) — both being built by agents | WP-M1, WP-M2 |
 | `GMES` | 3c09b3d (B1–B4) | **uncommitted merge** of `7f96fe0` (station on ledger; conflicts resolved; 114 tests green; planted-bug run in progress) + **uncommitted** new contracts `packages/eco-contracts/src/plan.ts` (+ index/ids/mes edits, 21 schemas) + stash `admin-123` (demo login in `scripts/seed-demo.ts`) | WP-G0 |
-| `hr-system` | 06fcf5e | **uncommitted** Phase A (in-product publisher `hr_core/eco_link.py`, Integration screen, DPAPI key store, `/api/admin/integration*`); full test list being re-run after removing 3 leftover planted bugs | WP-H0 |
+| `hr-system` | 75ab88e — Phase A landed (in-product publisher `hr_core/eco_link.py`, Integration screen, DPAPI key store, `/api/admin/integration*`); full test list incl. planted bugs ALL GREEN on 2026-09-29 | only WP-H0 step 4 (re-copy the eco-ui kit) remains | WP-H0 step 4 |
 | `3D-Modeling` | 0c7e07c | none | — |
 
 Known facts an implementer must not rediscover the hard way:
