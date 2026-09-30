@@ -65,7 +65,10 @@ const FIND = String.raw`(spec) => {
 }`;
 
 /** Wraps a Page so the agent's actions are shown and paced for an audience. `pace` 0 = as fast as possible (tests). */
-export function stage(page, { pace = 1, log = () => {} } = {}) {
+export function stage(page, { pace = 1, log = () => {}, onEvent = () => {}, captions = true } = {}) {
+  // onEvent receives every visible move ({ type: say|point|click|type|done, box?, text? }) for the film editor;
+  // captions false leaves the caption to the editor (it draws its own titles) while the cursor and ring stay on screen.
+  const emit = (e) => { try { onEvent({ at: Date.now(), ...e }); } catch { /* the film is optional */ } };
   const wait = (ms) => (pace ? sleep(ms * pace) : Promise.resolve());
   const ensure = async () => { await page.evaluate(LAYER); };
   page.send('Page.addScriptToEvaluateOnNewDocument', { source: LAYER }).catch(() => {});
@@ -86,19 +89,23 @@ export function stage(page, { pace = 1, log = () => {} } = {}) {
   async function point(spec) {
     const b = await find(spec);
     await page.evaluate(`__agent.ring(${JSON.stringify(b)}); __agent.move(${b.cx}, ${b.cy})`);
+    emit({ type: 'point', box: b });
     await wait(650);
     return b;
   }
   const api = {
     page,
     /** Shows a caption (the agent says what it does and why). Empty text hides it. */
-    async say(text) { await ensure(); await page.evaluate(`__agent.say(${JSON.stringify(text ?? '')})`); log(text); await wait(text ? 900 : 0); },
+    async say(text) { await ensure(); if (captions) await page.evaluate(`__agent.say(${JSON.stringify(text ?? '')})`); emit({ type: 'say', text: text ?? '' }); log(text); await wait(text ? 900 : 0); },
+    /** Marks a moment for the film (a result proven, a scene done); nothing changes on screen. */
+    mark(type, data = {}) { emit({ type, ...data }); },
     find,
     /** Clicks a control. With `expect` (a page expression), proves the click did what it should, retrying once. */
     async click(spec, { expect, timeout = 8_000 } = {}) {
       for (let attempt = 1; ; attempt++) {
         const b = await point(spec);
         await page.evaluate(`__agent.ripple(${b.cx}, ${b.cy})`);
+        emit({ type: 'click', box: b });
         await page.click(b.cx, b.cy);
         await wait(350);
         if (!expect) return b;
@@ -125,6 +132,7 @@ export function stage(page, { pace = 1, log = () => {} } = {}) {
         await sleep(80); // a field that reformats on focus swallows a key typed at once (185000 became 85000)
         // never faster than a quick typist, whatever the pace: controlled inputs need a moment per key
         const speed = Math.min(pace ? cps / pace : 40, 40) / attempt;
+        emit({ type: 'type', text: want });
         await page.type(want, speed);
         await wait(250);
         if (!check) return;

@@ -111,7 +111,7 @@ export async function launch({ profileDir, headless = false, exe = findBrowser()
         const { windowId } = await browser.send('Browser.getWindowForTarget', { targetId });
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { ...bounds, windowState: 'normal' } });
       }
-      if (headless && bounds) await page.send('Emulation.setDeviceMetricsOverride', { width: bounds.width, height: bounds.height, deviceScaleFactor: 1, mobile: false });
+      if (headless && bounds) await page.send('Emulation.setDeviceMetricsOverride', { width: bounds.width, height: bounds.height, deviceScaleFactor: bounds.scale ?? 1, mobile: false });
       pages.push(page);
       if (url) await page.goto(url);
       return page;

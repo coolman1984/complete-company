@@ -37,6 +37,7 @@ export async function recordJournal(s, api, { reference, memo, lines, explain })
   }
   // "غير متوازن" (not balanced) contains "متوازن" (balanced): wait for the warning to go AND the post button to be enabled
   await s.page.waitFor(`!document.body.innerText.includes('غير متوازن') && [...document.querySelectorAll('button')].some((b) => b.innerText.trim() === 'حفظ وترحيل' && !b.disabled)`, { what: 'a balanced entry' });
+  s.mark?.('balanced');
   await s.say('القيد متوازن: المدين = الدائن. بحفظه وبرحّله للدفاتر');
   await s.click({ text: 'حفظ وترحيل', within: 'button' }, { expect: `/^\\/journal\\/\\d+$/.test(location.pathname)`, timeout: 20_000 });
   const posted = await s.page.waitFor(`/^\\/journal\\/\\d+$/.test(location.pathname) && location.pathname`, { timeout: 20_000 });
@@ -45,6 +46,7 @@ export async function recordJournal(s, api, { reference, memo, lines, explain })
   const entry = await api('GET', `/api/journal/${id}`);
   const dr = entry.lines.reduce((a, l) => a + (l.debit ?? 0), 0), cr = entry.lines.reduce((a, l) => a + (l.credit ?? 0), 0);
   if (before.has(id) || entry.status !== 'posted' || dr !== cr || dr === 0) throw new Error(`the journal on screen is not a new posted balanced entry: ${JSON.stringify({ id, status: entry.status, dr, cr })}`);
+  s.mark?.('proven', { what: 'journal', number: entry.number, debit: dr, credit: cr, status: entry.status });
   await s.say(`اتسجّل واترحّل: قيد رقم ${entry.number}، مدين ${(dr / 100).toLocaleString('ar-EG')} = دائن ${(cr / 100).toLocaleString('ar-EG')} جنيه`);
   return entry;
 }

@@ -172,3 +172,19 @@ Four real defects were caught by running at full speed, and are now rules in `st
 One large window shows the application the agent is working in (it brings that window to the front as it moves from
 Mizan to GMES to HR to Space Planner); a narrow side window is the cockpit: the scene timeline, approval buttons and the
 scoreboard. Optional 2×2 view: the four applications at once, each refreshing as the agent's work lands.
+
+## 9. The film studio (owner's request, 2026-09-30)
+
+A professional film of the agent at work, made from **real runs only**: the footage is what the browser painted while
+the agent worked; the editor frames it and adds motion design around it, never redraws it.
+
+| Step | File | What it does |
+|---|---|---|
+| Shoot | `agent/studio/record.mjs`, `shoot-journal.mjs` | Films a run (JPEG frames at 1.5× pixel density, each with its time) and logs every visible move of the agent: point, click, type, say, balanced, proven, done |
+| Edit | `agent/studio/composer.html` | The film as a pure function of time: intro, scene card, the app in a window with a **camera that follows the agent** (springs aimed at each control it works on), live clock and step checklist, the agent's sentences as lower thirds, "balanced" badge and "proven" stamp on the real moments, a full-speed comparison with a stopwatch, figures, the next scenes, progress bar |
+| Sound | `agent/studio/audio.mjs` | Synthesised, no licence: pad and arpeggio, a click on every real click, key ticks while it types, whooshes on transitions, a pop when the entry balances, a chime when it is proven; mastered to -1 dBFS |
+| Render | `agent/studio/render.mjs` | Steps the composer frame by frame in a headless browser (1920×1080, 30 fps) and encodes H.264 + AAC MP4 with ffmpeg (`FFMPEG_PATH`); `--stills t1,t2` for design review; `--remux` for new sound on the same picture |
+
+First film: the journal scene, 65 s, 1920×1080, 30 fps, sound at -23 dB mean. Every figure on screen comes from the run
+(entry number, times, fields typed). Design review was done on stills before the render: right-to-left order of cards
+and chains, one digit style for counters, the stamp's wording, the scene number.
