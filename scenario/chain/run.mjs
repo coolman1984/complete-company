@@ -6,6 +6,7 @@
 // The applications must already be running, paired and empty: scripts/Test-Pairing.ps1 -Chain does all of that.
 // Usage: node run.mjs   (reads CHAIN_INPUT: { urls: {mizan, gmes, hr?}, logins: {mizan, gmes, hr?} })
 import { pair } from '../../portal/pair.mjs';
+import { verify, printReport } from '../verify/verify.mjs';
 
 const input = JSON.parse(process.env.CHAIN_INPUT);
 const { urls, logins } = input;
@@ -209,6 +210,12 @@ try {
     const rows = (await hr('GET', `/api/staffing/gap?from=${day()}&to=${day(30)}`));
     log(rows.length > 0, 'HR shows the staffing gap from the crew requirements', `${rows.length} rows`);
   }
+  // ---------------------------------------------------------------- the cross-system verifier over what the chain produced
+  await pump();
+  console.log('verify');
+  const report = await verify({ mizan, gmes, hr, day: day() });
+  printReport(report);
+  if (!report.ok) failed += report.checks.filter((c) => !c.ok).length;
   console.log(failed ? `CHAIN: ${failed} check(s) failed` : 'CHAIN: PASSED');
 } catch (e) {
   console.error('CHAIN: STOPPED —', e.message);
