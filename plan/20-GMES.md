@@ -262,7 +262,7 @@ day-level helpers: `runMrp()`, `firmAndRelease(policy)`, `receiveLotDecision(...
 {planByWorkOrder, fpyByOp, defects, stoppages, crew})` which simulates serial units through the routing (**6 scan
 points** for the simulation: panel load, board fit, function test, white balance + hi-pot, final inspection, pack),
 backflushes, repairs FAILs, books stoppages; `packAndShip(...)`; `closeDay(date)`.
-Keep `scripts/seed-demo.ts` (classic 14-day demo) working; `Start-GMES-Demo.bat` gains `-Scenario` to load the
+Keep `scripts/seed-demo.ts` (classic 14-day demo) working; `Start-Itqan-Demo.bat` gains `-Scenario` to load the
 scenario artefact built by WP-P3 instead.
 Performance target: 90 days × 2 FA lines × ~500 sets/shift × 6 scans ≈ 500k injects → < 15 min; measure and report.
 

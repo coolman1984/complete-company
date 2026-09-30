@@ -1,6 +1,6 @@
 # 60 — Ceramic pitch: demo, deck and pilot proposal
 
-Version 1.0 · 2026-09-30 · Owner's request: present to the board of a ceramic-tile factory (Beni Suef area) that the
+Version 1.0 · 2026-09-30 · Owner's request: present to the board of a ceramic-tile factory (Upper Egypt) that the
 team is a software, automation and AI-agents partner. Three deliverables, one plan.
 
 | # | Deliverable | Form | Language |
@@ -11,7 +11,7 @@ team is a software, automation and AI-agents partner. Three deliverables, one pl
 
 ## 0. Ground rules for this pitch (non-negotiable)
 
-1. **No Samsung.** Nothing from `opening-nerp-tcode` (screens, names, data, the fact that it exists) appears in the demo,
+1. **No other company's work.** Nothing from earlier projects (screens, names, data, the fact that they exist) appears in the demo,
    the deck or the proposal. No customer is named that has not agreed to be named.
 2. **No invented results.** The deck shows what the software does, never "we saved X %" for a customer we do not have.
    Industry figures are labelled as ranges to be measured at the pilot.

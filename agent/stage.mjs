@@ -4,7 +4,7 @@
 // real: Chrome's own mouse and keyboard events (CDP Input.*), so the application cannot tell the agent from a person,
 // and every record lands through the application's own screens and rules.
 //
-// Finding a control follows the rules learned driving G-MES at night (opening-nerp-tcode CLAUDE.md §3, lessons only,
+// Finding a control follows the rules learned in an earlier automation project (lessons only,
 // no code): wait for the very control you will use, never for "the page loaded"; only visible controls inside the
 // viewport; when several match, the smallest box wins; after every step, read back the result and prove it.
 import { until } from './cdp.mjs';

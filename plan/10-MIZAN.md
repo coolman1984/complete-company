@@ -154,7 +154,7 @@ fails if `new Date()` / `Date.now()` appear in `apps/server/src/modules/**` outs
 
 `apps/server/src/demo/nile-vision.ts` + CLI `npm run demo:nv -- --book <path> --data <dir>` that builds the Mizan
 side of `complete-company/scenario/book.json` through the HTTP API (`app.http.inject`, same pattern as
-`demo/samsung-egypt.ts`): company, chart of accounts, VAT 14%, cost centres, banks, parties with terms and credit
+the existing electronics demo company): company, chart of accounts, VAT 14%, cost centres, banks, parties with terms and credit
 limits, price lists, items with planning fields, opening balances and stock, FX rates, budgets. The day-by-day
 business actions are driven by the scenario engine (WP-P3) through an exported function API:
 `createApi(app)` returning typed helpers (`confirmSalesOrder`, `approveDemandPlan`, `convertRequisitions`,

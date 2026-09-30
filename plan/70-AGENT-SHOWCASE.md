@@ -105,7 +105,7 @@ The surprise is in the MVP: it is the strongest moment (the agent shows judgemen
 | The agent makes a wrong call | Approvals stop anything that commits the company; the verifier shows any mismatch in red, and we say so |
 | "Is the agent really doing it?" | The timeline shows every tool call and the record it made; open any record in its app |
 | E-invoice or tax filing | Test mode only; nothing is ever sent to the tax authority from a demo |
-| Space Planner's sample list includes an illustrative Samsung Beni Suef site (`packages/starter/src/samsung.ts`) | Never open it in this meeting; the demo opens the ceramic shipment directly. Owner to decide whether that sample stays in a public repository |
+| Space Planner's sample list includes other sample companies | The demo opens the ceramic shipment directly. (The electronics sample is now an invented company, Horizon Electronics.) |
 | Month-end "close" | Mizan closes fiscal years, not months: call it a month-end **review**, never a lock |
 
 ## 7. Open decisions for the owner
@@ -131,7 +131,7 @@ board member can dictate a number that the agent then types.
 
 - The model never hunts for pixels: it calls skills. Its freedom is in the decisions, not in where to click. That keeps
   a live run fast and predictable.
-- **Rules carried over from driving G-MES at night** (lessons only, no code): wait for the very control you will use;
+- **Rules carried over from an earlier automation project** (lessons only, no code): wait for the very control you will use;
   visible controls only, smallest box wins; every click that must change the screen proves it did (`expect`), retrying
   once; every typed field is read back and retyped slower on a mismatch; a failure saves a screenshot; own browser
   profile, never the user's; 127.0.0.1, never "localhost"; the browser is told to call nobody (works unplugged).
