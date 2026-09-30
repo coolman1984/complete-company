@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<title>Agent film composer</title>
+<!--
+  The film editor. Everything on screen is a pure function of the time t (renderAt(t)): no CSS transition, no timer,
+  so the renderer can step through the film frame by frame and every render of a frame is identical.
+  Footage = the real frames the browser painted while the agent worked (record.mjs). Nothing in them is redrawn;
+  the editor only frames them (window, camera) and adds titles around them.
+-->
+<style>
+  @font-face { font-family: Plex; font-weight: 400; src: url(/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 600; src: url(/fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 700; src: url(/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 400; src: url(/fonts/ibm-plex-sans-arabic-latin-400-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Plex; font-weight: 600; src: url(/fonts/ibm-plex-sans-arabic-latin-600-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Plex; font-weight: 700; src: url(/fonts/ibm-plex-sans-arabic-latin-700-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  :root { --ink: #F4EFE8; --soft: #B9B0A4; --dim: #7E766C; --bg: #111719; --clay: #D8733F; --clay2: #F0A06F; --teal: #3B8FB0; --ok: #57C28E; }
+  html, body { margin: 0; background: #000; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); font-family: Plex, Tahoma, sans-serif; color: var(--ink); }
+  .layer { position: absolute; inset: 0; }
+  .rtl { direction: rtl; }
+  #bg { background: radial-gradient(900px 700px at var(--g1x) var(--g1y), rgba(216,115,63,.22), transparent 70%), radial-gradient(1000px 800px at var(--g2x) var(--g2y), rgba(59,143,176,.18), transparent 70%), #111719; }
+  #grid { background-image: radial-gradient(rgba(244,239,232,.09) 1.2px, transparent 1.3px); background-size: 36px 36px; }
+  /* intro */
+  #intro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
+  #intro .kicker { font-size: 30px; font-weight: 600; color: var(--clay2); letter-spacing: 0; }
+  #intro h1 { margin: 0; font-size: 168px; font-weight: 700; line-height: 1.05; }
+  #intro .rule { height: 6px; width: 640px; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--clay), transparent); }
+  #intro .sub { font-size: 40px; color: var(--soft); }
+  #intro .live { font-size: 26px; color: var(--ok); font-weight: 600; }
+  /* scene card */
+  #card { display: flex; flex-direction: column; justify-content: center; padding: 0 200px; gap: 18px; }
+  #card .num { font-size: 300px; font-weight: 700; line-height: .9; color: transparent; -webkit-text-stroke: 3px rgba(216,115,63,.9); }
+  #card h2 { margin: 0; font-size: 92px; font-weight: 700; line-height: 1.15; }
+  #card .tags { display: flex; gap: 16px; }
+  #card .tag { font-size: 30px; padding: 10px 24px; border-radius: 40px; background: rgba(244,239,232,.08); border: 1px solid rgba(244,239,232,.16); color: var(--soft); }
+  /* the application window */
+  .win { position: absolute; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08); transform-origin: 50% 50%; }
+  .win .bar { position: absolute; left: 0; right: 0; top: 0; height: 46px; background: #1B2326; display: flex; align-items: center; padding: 0 20px; gap: 10px; z-index: 2; }
+  .win .dot { width: 14px; height: 14px; border-radius: 7px; }
+  .win .title { flex: 1; text-align: center; font-size: 20px; color: var(--soft); direction: rtl; }
+  .win .livebadge { font-size: 17px; font-weight: 600; color: #fff; background: rgba(87,194,142,.18); border: 1px solid rgba(87,194,142,.5); padding: 4px 12px; border-radius: 20px; direction: rtl; }
+  .win .livebadge i { display: inline-block; width: 9px; height: 9px; border-radius: 5px; background: var(--ok); margin-inline-end: 8px; vertical-align: 1px; }
+  .win .view { position: absolute; left: 0; right: 0; bottom: 0; top: 46px; overflow: hidden; background: #fff; }
+  .win .view img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  /* side panel */
+  #panel { position: absolute; top: 60px; width: 330px; right: 44px; bottom: 70px; display: flex; flex-direction: column; gap: 26px; direction: rtl; }
+  #panel .brand { font-size: 24px; font-weight: 700; color: var(--clay2); display: flex; align-items: center; gap: 12px; }
+  #panel .brand b { width: 14px; height: 14px; border-radius: 7px; background: var(--clay); box-shadow: 0 0 0 6px rgba(216,115,63,.2); }
+  #panel .clock { background: rgba(244,239,232,.06); border: 1px solid rgba(244,239,232,.12); border-radius: 18px; padding: 20px 24px; }
+  #panel .clock .l { font-size: 20px; color: var(--soft); }
+  #panel .clock .v { font-size: 64px; font-weight: 700; direction: ltr; text-align: right; font-variant-numeric: tabular-nums; }
+  #panel .steps { display: flex; flex-direction: column; gap: 14px; }
+  #panel .step { display: flex; align-items: center; gap: 14px; font-size: 23px; color: var(--dim); }
+  #panel .step .m { width: 30px; height: 30px; border-radius: 15px; border: 2px solid rgba(244,239,232,.22); flex: none; display: grid; place-items: center; font-size: 18px; color: #111; }
+  #panel .step.active { color: var(--ink); }
+  #panel .step.active .m { border-color: var(--clay); box-shadow: 0 0 0 5px rgba(216,115,63,.18); }
+  #panel .step.done { color: var(--soft); }
+  #panel .step.done .m { background: var(--ok); border-color: var(--ok); }
+  #panel .scene { margin-top: auto; font-size: 20px; color: var(--dim); }
+  /* lower third */
+  .lt { position: absolute; direction: rtl; display: flex; align-items: stretch; max-width: 1180px; background: rgba(17,23,25,.92); border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden; }
+  .lt .who { background: var(--clay); color: #fff; font-size: 22px; font-weight: 700; padding: 18px 20px; display: flex; align-items: center; }
+  .lt .txt { font-size: 32px; line-height: 1.45; padding: 16px 26px; }
+  /* callouts */
+  .badge { position: absolute; direction: rtl; font-size: 30px; font-weight: 700; padding: 14px 26px; border-radius: 40px; background: var(--ok); color: #0E2A1D; box-shadow: 0 14px 40px rgba(87,194,142,.35); }
+  .stamp { position: absolute; direction: rtl; width: 860px; padding: 36px 40px; border-radius: 28px; background: rgba(17,23,25,.95); border: 2px solid var(--ok); box-shadow: 0 30px 90px rgba(0,0,0,.5); display: flex; gap: 28px; align-items: center; }
+  .stamp .ring { width: 110px; height: 110px; border-radius: 55px; background: var(--ok); flex: none; display: grid; place-items: center; }
+  .stamp h3 { margin: 0 0 6px; font-size: 40px; }
+  .stamp p { margin: 0; font-size: 26px; color: var(--soft); line-height: 1.5; }
+  /* speed + stats + outro */
+  .bigtitle { position: absolute; left: 0; right: 0; text-align: center; font-size: 84px; font-weight: 700; direction: rtl; }
+  .subtitle { position: absolute; left: 0; right: 0; text-align: center; font-size: 36px; color: var(--soft); direction: rtl; }
+  .watch { position: absolute; direction: rtl; text-align: center; }
+  .watch .v { font-size: 150px; font-weight: 700; direction: ltr; font-variant-numeric: tabular-nums; color: var(--clay2); line-height: 1; }
+  .watch .l { font-size: 28px; color: var(--soft); }
+  .tiles { position: absolute; left: 150px; right: 150px; top: 370px; display: flex; flex-direction: row; gap: 36px; direction: rtl; }
+  .tile { flex: 1; padding: 44px 40px; border-radius: 26px; background: rgba(244,239,232,.06); border: 1px solid rgba(244,239,232,.13); }
+  .tile .v { font-size: 110px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+  .tile .l { margin-top: 18px; font-size: 30px; color: var(--soft); line-height: 1.45; }
+  .chain { position: absolute; left: 60px; right: 60px; top: 490px; display: flex; flex-direction: row; justify-content: center; gap: 12px; direction: rtl; }
+  .chain .c { font-size: 27px; font-weight: 600; padding: 16px 20px; white-space: nowrap; border-radius: 18px; background: rgba(244,239,232,.07); border: 1px solid rgba(244,239,232,.14); }
+  .chain .c.hl { background: var(--clay); border-color: var(--clay); color: #fff; }
+  .chain .arr { font-size: 28px; color: var(--dim); align-self: center; }
+  #vignette { background: radial-gradient(1400px 900px at 50% 50%, transparent 60%, rgba(0,0,0,.45)); pointer-events: none; }
+  #fade { background: #000; pointer-events: none; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="layer"></div>
+  <div id="grid" class="layer"></div>
+
+  <div id="intro" class="layer rtl">
+    <div class="kicker">مصنع السيراميك التجريبي · شركة وهمية لأغراض العرض</div>
+    <h1>الوكيل الذكي</h1>
+    <div class="rule"></div>
+    <div class="sub">بيشتغل جوه برامج المصنع الحقيقية، قدام عينك</div>
+    <div class="live">● تشغيل حقيقي مسجّل من الشاشة، مش رسوم متحركة</div>
+  </div>
+
+  <div id="card" class="layer rtl">
+    <div class="num">01</div>
+    <h2>فاتورة كهرباء الأفران<br>تتسجّل في الحسابات</h2>
+    <div class="tags"><span class="tag">١٨٥٬٠٠٠ جنيه</span><span class="tag">قيد يومية</span><span class="tag">ترحيل</span><span class="tag">قائمة الدخل</span></div>
+  </div>
+
+  <div id="main" class="layer">
+    <div id="win" class="win" style="left:44px;top:60px;width:1456px;height:956px">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>
+        <span class="title">ميزان · برنامج الحسابات</span><span class="livebadge"><i></i>تشغيل حقيقي</span></div>
+      <div class="view"><img id="shot" width="1456" height="910" alt=""></div>
+    </div>
+    <div id="panel">
+      <div class="brand"><b></b>الوكيل الذكي شغال</div>
+      <div class="clock"><div class="l">زمن التشغيل الحقيقي</div><div class="v" id="clock">00:00.0</div></div>
+      <div class="steps" id="steps"></div>
+      <div class="scene" id="scenelabel">المشهد ٠١ · الحسابات</div>
+    </div>
+    <div id="lt" class="lt" style="left:94px;top:880px"><div class="who">الوكيل</div><div class="txt" id="lttxt"></div></div>
+    <div id="badge" class="badge" style="left:90px;top:130px">✓ متوازن: المدين = الدائن</div>
+    <div id="stamp" class="stamp" style="left:342px;top:360px">
+      <div class="ring"><svg width="64" height="64" viewBox="0 0 24 24"><path id="tick" d="M4 12.5l5 5L20 6.5" fill="none" stroke="#0E2A1D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="30" stroke-dashoffset="30"/></svg></div>
+      <div><h3>اتأكد من جوه البرنامج</h3><p id="stamptxt">القيد اتسجّل واترحّل ومتوازن</p></div>
+    </div>
+  </div>
+
+  <div id="speed" class="layer">
+    <div class="bigtitle" id="speedtitle" style="top:120px">نفس الشغل… بالسرعة الكاملة</div>
+    <div class="subtitle" id="speedsub" style="top:235px">لما محدش بيتفرج، مفيش داعي للبطء</div>
+    <div id="win2" class="win" style="left:420px;top:320px;width:1080px;height:721px">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>
+        <span class="title">ميزان · نفس القيد</span><span class="livebadge"><i></i>تشغيل حقيقي</span></div>
+      <div class="view"><img id="shot2" width="1080" height="675" alt=""></div>
+    </div>
+    <div class="watch" id="watch" style="left:1540px;top:520px;width:330px"><div class="v" id="watchv">0.0</div><div class="l">ثانية بالسرعة الكاملة</div></div>
+    <div class="watch" id="watchold" style="left:50px;top:540px;width:330px"><div class="v" style="font-size:90px;color:var(--soft)" id="watcholdv">33</div><div class="l">ثانية بسرعة العرض<br>عشان تلحقوا تتابعوا</div></div>
+  </div>
+
+  <div id="stats" class="layer">
+    <div class="bigtitle" style="top:170px">القيد في أرقام</div>
+    <div class="tiles">
+      <div class="tile" id="t1"><div class="v" id="t1v">0</div><div class="l">ثواني بالسرعة الكاملة، من فتح البرنامج لحد الترحيل</div></div>
+      <div class="tile" id="t2"><div class="v" id="t2v">0</div><div class="l">خانات اتكتبت واتقرت تاني واتأكد منها</div></div>
+      <div class="tile" id="t3"><div class="v" id="t3v">0%</div><div class="l">مطابقة: المدين = الدائن، والقيد مترحّل فعلاً في البرنامج</div></div>
+    </div>
+  </div>
+
+  <div class="subtitle" id="statsline" style="top:780px;font-size:34px">كل حرف ورقم اتكتب بإيد الوكيل، ومن غير ما إنسان يلمس الكيبورد</div>
+  <div id="outro" class="layer">
+    <div class="bigtitle" style="top:250px">والجاي: الرحلة كاملة</div>
+    <div class="subtitle" style="top:370px">من طلب العميل لحد القوائم المالية، بنفس الطريقة</div>
+    <div class="chain" id="chain"></div>
+    <div class="subtitle" id="sign" style="top:820px;font-size:30px;color:var(--dim)">الوكيل الذكي · Complete Company</div>
+  </div>
+
+  <div id="progress" style="position:absolute;left:0;bottom:0;height:5px;width:1920px;background:linear-gradient(90deg,#D8733F,#F0A06F);transform-origin:100% 50%"></div>
+  <div id="vignette" class="layer"></div>
+  <div id="fade" class="layer"></div>
+</div>
+<script>
+// ------------------------------------------------------------------ easing and helpers (all pure)
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);             // ease out cubic
+const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const mix = (a, b, x) => a + (b - a) * x;
+const $ = (id) => document.getElementById(id);
+const AR = (n) => String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+const set = (el, o, tf) => { el.style.opacity = o; if (tf !== undefined) el.style.transform = tf; el.style.visibility = o <= 0.001 ? 'hidden' : 'visible'; };
+
+let CUT = null;            // set by load()
+const cache = new Map();   // image url -> decoded Image
+
+/** One camera path per take: springs follow targets set by the agent's own moves, so the camera arrives with it. */
+function cameraPath(take, vw, vh) {
+  const ev = take.events, dur = take.duration, keys = [{ t: 0, z: 1, x: vw / 2, y: vh / 2 }];
+  for (let i = 0; i < ev.length; i++) {
+    const e = ev[i];
+    if (e.type === 'point' && e.box) {
+      const z = e.box.w < 420 ? 1.8 : 1.4;
+      keys.push({ t: e.t - 250, z, x: e.box.cx, y: e.box.cy });
+    } else if (e.type === 'say' || e.type === 'balanced' || e.type === 'done') {
+      const next = ev.slice(i + 1).find((x) => x.type === 'point');
+      if (!next || next.t - e.t > 1400) keys.push({ t: e.t + 150, z: e.type === 'done' ? 1.08 : 1, x: vw / 2, y: vh / 2 });
+    } else if (e.type === 'proven') keys.push({ t: e.t, z: 1.25, x: vw / 2, y: vh * 0.34 });
+  }
+  keys.sort((a, b) => a.t - b.t);
+  const step = 1000 / 120, out = [];
+  let s = { z: 1, x: vw / 2, y: vh / 2 }, v = { z: 0, x: 0, y: 0 }, k = 0;
+  const w = 7.5; // spring stiffness: settles in about 0.6 s, no overshoot (critically damped)
+  for (let t = 0; t <= dur + 2000; t += step) {
+    while (k + 1 < keys.length && keys[k + 1].t <= t) k++;
+    const g = keys[k], dt = step / 1000;
+    for (const c of ['z', 'x', 'y']) { const a = w * w * (g[c] - s[c]) - 2 * w * v[c]; v[c] += a * dt; s[c] += v[c] * dt; }
+    out.push({ ...s });
+  }
+  return (ms) => out[clamp(Math.round(ms / step), 0, out.length - 1)];
+}
+
+function frameAt(take, ms) {
+  const f = take.frames; let lo = 0, hi = f.length - 1;
+  if (ms <= f[0].t) return f[0];
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (f[mid].t <= ms) lo = mid; else hi = mid - 1; }
+  return f[lo];
+}
+async function showFrame(img, take, ms) {
+  const url = take.base + frameAt(take, ms).file;
+  if (img.dataset.src === url) return;
+  let im = cache.get(url);
+  if (!im) { im = new Image(); im.src = url; await im.decode(); cache.set(url, im); if (cache.size > 40) cache.delete(cache.keys().next().value); }
+  img.src = url; img.dataset.src = url;
+  await img.decode().catch(() => {});
+}
+function placeCamera(img, cam, vw, boxW, boxH) {
+  const k = boxW / vw, z = cam.z;
+  let tx = boxW / 2 - cam.x * k * z, ty = boxH / 2 - cam.y * k * z;
+  tx = clamp(tx, boxW - boxW * z, 0); ty = clamp(ty, boxH - boxH * z, 0);
+  img.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
+}
+
+// ------------------------------------------------------------------ the cut
+window.load = (cut) => {
+  CUT = cut;
+  const A = cut.takes.show, B = cut.takes.fast;
+  A.cam = cameraPath(A, A.viewport.w, A.viewport.h);
+  B.cam = cameraPath(B, B.viewport.w, B.viewport.h);
+  const says = A.events.filter((e) => e.type === 'say' && e.text);
+  const at = (type, n = 0) => A.events.filter((e) => e.type === type)[n]?.t ?? Infinity;
+  const firstTypeAfter = (t) => A.events.find((e) => e.type === 'type' && e.t > t)?.t ?? Infinity;
+  cut.steps = [
+    { label: 'تسجيل الدخول للبرنامج', done: says[1]?.t ?? Infinity },
+    { label: 'فتح شاشة قيود اليومية', done: firstTypeAfter(says[1]?.t ?? 0) },
+    { label: 'كتابة القيد سطر بسطر', done: at('balanced') },
+    { label: 'الترحيل للدفاتر', done: at('proven') },
+    { label: 'التأكد من جوه البرنامج', done: at('proven') + 700 },
+    { label: 'قائمة الدخل اتحدثت', done: at('done') },
+  ];
+  $('steps').innerHTML = cut.steps.map((s, i) => `<div class="step" id="st${i}"><span class="m"></span><span>${s.label}</span></div>`).join('');
+  cut.says = says;
+  cut.balancedAt = at('balanced'); cut.provenAt = at('proven');
+  const proven = A.result?.number ?? '';
+  $('stamptxt').textContent = `قيد ${proven} مترحّل فعلاً · مدين = دائن = ١٨٥٬٠٠٠ جنيه`;
+  const chain = ['طلب العميل', 'الخامات والـ MRP', 'الشراء', 'الإنتاج والجودة', 'الحاوية ثلاثية الأبعاد', 'الشحن والفاتورة', 'الإقفال والقوائم'];
+  $('chain').innerHTML = chain.map((c, i) => `<span class="c" id="ch${i}">${c}</span>` + (i < chain.length - 1 ? '<span class="arr">←</span>' : '')).join('');
+  // timeline (seconds)
+  const T = {};
+  T.introEnd = 5.2;
+  T.card = 5.0; T.cardEnd = 8.4;
+  T.main = 8.0; T.mainEnd = T.main + A.duration / 1000 + 0.3;
+  T.speed = T.mainEnd - 0.2; T.fast = T.speed + 2.4; T.speedEnd = T.fast + B.duration / 1000 + 1.4;
+  T.stats = T.speedEnd - 0.2; T.statsEnd = T.stats + 6.6;
+  T.outro = T.statsEnd - 0.2; T.end = T.outro + 6.4;
+  cut.T = T; cut.duration = T.end;
+  return T.end;
+};
+
+window.renderAt = async (t) => {
+  const { T, takes: { show: A, fast: B } } = CUT;
+  // background drift
+  const st = $('stage').style;
+  st.setProperty('--g1x', `${30 + 10 * Math.sin(t * .23)}%`); st.setProperty('--g1y', `${30 + 8 * Math.cos(t * .19)}%`);
+  st.setProperty('--g2x', `${72 + 9 * Math.cos(t * .17)}%`); st.setProperty('--g2y', `${70 + 7 * Math.sin(t * .21)}%`);
+  $('grid').style.transform = `translate(${(t * 6) % 36}px, ${(t * 3) % 36}px)`;
+
+  // ---- intro
+  {
+    const inn = eo(lin(t, .2, 1.4)), out = eio(lin(t, T.introEnd - .9, T.introEnd));
+    const el = $('intro');
+    set(el, inn * (1 - out), `scale(${mix(1.06, 1, inn) * mix(1, .94, out)})`);
+    const h1 = el.querySelector('h1'); const hx = eo(lin(t, .35, 1.6));
+    h1.style.filter = `blur(${mix(18, 0, hx)}px)`; h1.style.letterSpacing = `${mix(30, 0, hx)}px`;
+    el.querySelector('.rule').style.transform = `scaleX(${eo(lin(t, .9, 2.0))})`;
+    set(el.querySelector('.sub'), eo(lin(t, 1.5, 2.3)), `translateY(${mix(24, 0, eo(lin(t, 1.5, 2.3)))}px)`);
+    set(el.querySelector('.live'), eo(lin(t, 2.3, 3.0)));
+    set(el.querySelector('.kicker'), eo(lin(t, .8, 1.6)));
+  }
+  // ---- scene card
+  {
+    const inn = eo(lin(t, T.card, T.card + .8)), out = eio(lin(t, T.cardEnd - .8, T.cardEnd));
+    const el = $('card');
+    set(el, inn * (1 - out), `translateX(${mix(-90, 0, inn) + mix(0, 160, out)}px)`);
+    el.querySelector('.num').style.transform = `translateY(${mix(60, 0, eo(lin(t, T.card, T.card + 1)))}px)`;
+    el.querySelectorAll('.tag').forEach((g, i) => set(g, eo(lin(t, T.card + .6 + i * .15, T.card + 1.1 + i * .15)), `translateY(${mix(20, 0, eo(lin(t, T.card + .6 + i * .15, T.card + 1.1 + i * .15)))}px)`));
+  }
+  // ---- main: the real footage
+  {
+    const inn = eo(lin(t, T.main, T.main + 1.0)), out = eio(lin(t, T.mainEnd - .6, T.mainEnd + .3));
+    set($('main'), inn * (1 - out));
+    $('win').style.transform = `perspective(2200px) rotateX(${mix(14, 0, inn)}deg) scale(${mix(.86, 1, inn) * mix(1, .92, out)}) translateY(${mix(70, 0, inn)}px)`;
+    set($('panel'), eo(lin(t, T.main + .5, T.main + 1.3)), `translateX(${mix(60, 0, eo(lin(t, T.main + .5, T.main + 1.3)))}px)`);
+    if (t >= T.main - .1 && t <= T.mainEnd + .4) {
+      const ms = clamp((t - T.main) * 1000, 0, A.duration);
+      await showFrame($('shot'), A, ms);
+      placeCamera($('shot'), A.cam(ms), A.viewport.w, 1456, 910);
+      const s = ms / 1000; $('clock').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+      CUT.steps.forEach((x, i) => { const e = $('st' + i); const done = ms >= x.done; const active = !done && (i === 0 || ms >= CUT.steps[i - 1].done); e.className = 'step' + (done ? ' done' : active ? ' active' : ''); e.querySelector('.m').textContent = done ? '✓' : ''; });
+      // lower third: the agent's own sentence, as it said it
+      const cur = [...CUT.says].reverse().find((e) => e.t <= ms);
+      const lt = $('lt');
+      if (cur) {
+        const next = CUT.says.find((e) => e.t > cur.t);
+        const a = eo(lin(ms, cur.t, cur.t + 350)), z = next ? eio(lin(ms, next.t - 220, next.t)) : 0;
+        $('lttxt').textContent = cur.text;
+        set(lt, a * (1 - z), `translateY(${mix(30, 0, a)}px)`);
+      } else set(lt, 0);
+      // callouts
+      const b = lin(ms, CUT.balancedAt, CUT.balancedAt + 400), bo = lin(ms, CUT.balancedAt + 2200, CUT.balancedAt + 2600);
+      set($('badge'), b * (1 - bo), `scale(${mix(.6, 1, back(b))})`);
+      const p = lin(ms, CUT.provenAt + 150, CUT.provenAt + 650), po = lin(ms, CUT.provenAt + 2900, CUT.provenAt + 3300);
+      set($('stamp'), p * (1 - po), `scale(${mix(.7, 1, back(p))})`);
+      $('tick').style.strokeDashoffset = String(30 * (1 - eo(lin(ms, CUT.provenAt + 450, CUT.provenAt + 950))));
+    }
+  }
+  // ---- speed: the same entry at full speed
+  {
+    const inn = eo(lin(t, T.speed, T.speed + .8)), out = eio(lin(t, T.speedEnd - .6, T.speedEnd));
+    set($('speed'), inn * (1 - out));
+    const w = eo(lin(t, T.fast - .9, T.fast - .1));
+    set($('win2'), w, `translateY(${mix(80, 0, w)}px) scale(${mix(.9, 1, w)})`);
+    set($('watch'), w); set($('watchold'), eo(lin(t, T.fast - .5, T.fast + .3)));
+    set($('speedsub'), eo(lin(t, T.speed + .5, T.speed + 1.2)));
+    if (t >= T.speed && t <= T.speedEnd) {
+      const ms = clamp((t - T.fast) * 1000, 0, B.duration);
+      await showFrame($('shot2'), B, ms);
+      placeCamera($('shot2'), { z: 1, x: B.viewport.w / 2, y: B.viewport.h / 2 }, B.viewport.w, 1080, 675);
+      $('watchv').textContent = (ms / 1000).toFixed(1);
+      $('watcholdv').textContent = String(Math.round(A.duration / 1000));
+    }
+  }
+  // ---- stats
+  {
+    const inn = eo(lin(t, T.stats, T.stats + .8)), out = eio(lin(t, T.statsEnd - .6, T.statsEnd));
+    set($('stats'), inn * (1 - out));
+    const fastS = B.duration / 1000, fields = A.events.filter((e) => e.type === 'type').length;
+    [['t1', fastS, 1], ['t2', fields, 0], ['t3', 100, 0]].forEach(([id, v, dec], i) => {
+      const a = eo(lin(t, T.stats + .4 + i * .25, T.stats + 2.2 + i * .25));
+      set($(id), eo(lin(t, T.stats + .3 + i * .25, T.stats + .9 + i * .25)), `translateY(${mix(50, 0, eo(lin(t, T.stats + .3 + i * .25, T.stats + .9 + i * .25)))}px)`);
+      $(id + 'v').textContent = (v * a).toFixed(dec) + (id === 't3' ? '%' : '');
+    });
+  }
+  // ---- outro
+  {
+    const inn = eo(lin(t, T.outro, T.outro + .9)), out = eio(lin(t, T.end - .9, T.end));
+    set($('outro'), inn * (1 - out));
+    document.querySelectorAll('#chain .c').forEach((c, i) => {
+      const a = eo(lin(t, T.outro + .5 + i * .22, T.outro + 1.0 + i * .22));
+      set(c, a, `translateY(${mix(30, 0, a)}px)`);
+    });
+    document.querySelectorAll('#chain .arr').forEach((c, i) => set(c, eo(lin(t, T.outro + .7 + i * .22, T.outro + 1.1 + i * .22))));
+    set($('sign'), eo(lin(t, T.outro + 2.6, T.outro + 3.4)));
+  }
+  set($('statsline'), eo(lin(t, T.stats + 1.8, T.stats + 2.6)) * (1 - eio(lin(t, T.statsEnd - .6, T.statsEnd))));
+  $('progress').style.transform = `scaleX(${clamp(t / T.end)})`;
+  set($('fade'), Math.max(1 - eo(lin(t, 0, .6)), eio(lin(t, CUT.T.end - .5, CUT.T.end))));
+  return true;
+};
+</script>
+</body>
+</html>

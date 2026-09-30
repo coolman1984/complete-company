@@ -1,0 +1,312 @@
+{
+  "note": "Film 2: from the tile line to the container. Marks are the agent's own events in each take ({type, n} = the n-th event of that type). checks are compared with each take's recorded result before anything is rendered: a film never shows a figure the run did not produce.",
+  "takes": [
+    "floor",
+    "ship"
+  ],
+  "checks": [
+    {
+      "take": "floor",
+      "key": "completed",
+      "equals": "1300"
+    },
+    {
+      "take": "floor",
+      "key": "scrapped",
+      "equals": "140"
+    },
+    {
+      "take": "floor",
+      "key": "status",
+      "equals": "completed"
+    },
+    {
+      "take": "ship",
+      "key": "count",
+      "equals": 2
+    }
+  ],
+  "intro": {
+    "kicker": "مصنع السيراميك التجريبي · شركة وهمية لأغراض العرض",
+    "title": "الوكيل الذكي",
+    "sub": "من خط البلاط لحد الحاوية، جوه البرامج الحقيقية"
+  },
+  "scenes": [
+    {
+      "num": "02",
+      "title": "الإنتاج: خط البلاط\nشغال والوكيل بيسجّل",
+      "tags": [
+        "توقف الفرن",
+        "١٬٣٠٠ م² فرز أول",
+        "لوط S07-C2"
+      ],
+      "take": "floor",
+      "start": "start",
+      "end": {
+        "type": "scene",
+        "n": 1
+      },
+      "window": "إتقان · برنامج التصنيع",
+      "label": "المشهد ٠٢ · الإنتاج",
+      "steps": [
+        {
+          "label": "تسجيل الدخول بالعربي",
+          "done": {
+            "type": "scene",
+            "n": 0
+          }
+        },
+        {
+          "label": "محطة العامل عند الفرن",
+          "done": {
+            "type": "say",
+            "n": 3
+          }
+        },
+        {
+          "label": "تسجيل توقف الفرن وسببه",
+          "done": {
+            "type": "proven",
+            "n": 0
+          }
+        },
+        {
+          "label": "محطة الفرز والتعبئة",
+          "done": {
+            "type": "say",
+            "n": 6
+          }
+        },
+        {
+          "label": "وردية الصبح ٦٥٠ م²",
+          "done": {
+            "type": "proven",
+            "n": 1
+          }
+        },
+        {
+          "label": "وردية المسا ٦٥٠ م²",
+          "done": {
+            "type": "proven",
+            "n": 2
+          }
+        }
+      ],
+      "badges": [
+        {
+          "at": {
+            "type": "stopped",
+            "n": 0
+          },
+          "text": "⏸ الخط واقف: حرارة الفرن",
+          "hold": 2400,
+          "tone": "warn"
+        }
+      ],
+      "stamps": [
+        {
+          "at": {
+            "type": "proven",
+            "n": 0
+          },
+          "title": "التوقف اتسجّل",
+          "text": "بسببه ومدته في سجل التوقفات، وبيدخل في حساب كفاءة الخط",
+          "hold": 2000
+        },
+        {
+          "at": {
+            "type": "proven",
+            "n": 2
+          },
+          "title": "اتأكد من أمر الشغل",
+          "text": "١٬٣٠٠ م² فرز أول في لوط واحد S07-C2",
+          "hold": 2600
+        }
+      ]
+    },
+    {
+      "num": "03",
+      "title": "الجودة: الفرز\nوكل متر ضايع ليه سبب",
+      "tags": [
+        "شروخ الفرن ٤٠",
+        "تقشير ٢٠",
+        "فرز تاني ٨٠",
+        "٩٫٧٪"
+      ],
+      "take": "floor",
+      "start": {
+        "type": "scene",
+        "n": 1
+      },
+      "end": "end",
+      "window": "إتقان · برنامج التصنيع",
+      "label": "المشهد ٠٣ · الجودة والفرز",
+      "steps": [
+        {
+          "label": "شروخ الفرن ٤٠ م²",
+          "done": {
+            "type": "proven",
+            "n": 3
+          }
+        },
+        {
+          "label": "تقشير المكبس ٢٠ م²",
+          "done": {
+            "type": "proven",
+            "n": 4
+          }
+        },
+        {
+          "label": "نزل فرز تاني ٨٠ م²",
+          "done": {
+            "type": "proven",
+            "n": 5
+          }
+        },
+        {
+          "label": "تقرير الفاقد بالسبب",
+          "done": {
+            "type": "say",
+            "n": 12
+          }
+        },
+        {
+          "label": "تقرير الإنتاج والكفاءة",
+          "done": {
+            "type": "done",
+            "n": 0
+          }
+        }
+      ],
+      "stamps": [
+        {
+          "at": {
+            "type": "proven",
+            "n": 5
+          },
+          "title": "أمر الشغل اكتمل",
+          "text": "١٬٣٠٠ سليم + ١٤٠ فاقد = ١٬٤٤٠ م² المطلوبة بالظبط",
+          "hold": 2800
+        }
+      ]
+    },
+    {
+      "num": "04",
+      "title": "الحاوية: الوزن\nبيحدد قبل المساحة",
+      "tags": [
+        "٢٣ بالتة",
+        "١٬٣٠٥ كجم للبالتة",
+        "حاويتين",
+        "توازن الحمولة"
+      ],
+      "take": "ship",
+      "start": "start",
+      "end": "end",
+      "window": "Space Planner · مخطط المساحات",
+      "label": "المشهد ٠٤ · الشحن",
+      "steps": [
+        {
+          "label": "مقاسات البالتة ووزنها",
+          "done": {
+            "type": "answer",
+            "n": 0
+          }
+        },
+        {
+          "label": "الحاويات اتحسبت بالوزن",
+          "done": {
+            "type": "say",
+            "n": 1,
+            "plus": 400
+          }
+        },
+        {
+          "label": "اتخزنت في مخطط المساحات",
+          "done": {
+            "type": "proven",
+            "n": 0
+          }
+        },
+        {
+          "label": "التحميل ثلاثي الأبعاد",
+          "done": {
+            "type": "done",
+            "n": 0
+          }
+        }
+      ],
+      "badges": [
+        {
+          "at": {
+            "type": "answer",
+            "n": 0
+          },
+          "text": "⚖ الوزن هو الحد: حاويتين مش واحدة",
+          "hold": 2600,
+          "tone": "info"
+        }
+      ],
+      "stamps": [
+        {
+          "at": {
+            "type": "proven",
+            "n": 0
+          },
+          "title": "اتخزنت في مخطط المساحات",
+          "text": "الأولى ٢٠ بالتة (٢٦٫١ طن من ٢٦٫٥) والتانية ٣، والاتنين متوازنين",
+          "hold": 2600
+        }
+      ]
+    }
+  ],
+  "stats": {
+    "title": "من الخط للحاوية في أرقام",
+    "tiles": [
+      {
+        "value": 1300,
+        "group": true,
+        "label": "م² فرز أول في لوط واحد، بدرجة لون ومقاس واحد"
+      },
+      {
+        "value": 9.7,
+        "decimals": 1,
+        "suffix": "%",
+        "label": "فاقد، وكل متر معروف سببه ومرحلته"
+      },
+      {
+        "value": 2,
+        "label": "حاوية: الوزن اللي حدد مش المساحة، وكل واحدة متوازنة"
+      }
+    ],
+    "line": "كل رقم هنا طالع من البرامج نفسها بعد التشغيل، مش مكتوب بإيد"
+  },
+  "outro": {
+    "title": "والجاي: باقي الرحلة",
+    "sub": "كل خطوة جوه البرنامج بتاعها، بنفس الطريقة",
+    "chain": [
+      {
+        "label": "طلب العميل"
+      },
+      {
+        "label": "الخامات والـ MRP"
+      },
+      {
+        "label": "الشراء"
+      },
+      {
+        "label": "الإنتاج والجودة",
+        "done": true
+      },
+      {
+        "label": "الحاوية ثلاثية الأبعاد",
+        "done": true
+      },
+      {
+        "label": "الشحن والفاتورة"
+      },
+      {
+        "label": "الإقفال والقوائم"
+      }
+    ]
+  }
+}

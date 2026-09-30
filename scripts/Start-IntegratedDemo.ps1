@@ -5,17 +5,25 @@
   planning, purchase order, goods receipt with lots, incoming inspection with a partly rejected lot, serial production,
   packing, dispatch, delivery, invoice and payment). Built the first time (about two minutes), then just started.
   The data lives in ..\_integrated-demo (outside every repository); real data is never touched.
+.PARAMETER Scenario
+  Which demo company: 'tv' (default, Nile Vision Electronics, scenario\chain) or 'ceramic' (Demo Ceramics Co., one tile
+  order end to end, scenario\ceramic; plan\60-CERAMIC-PITCH.md). Each has its own data folder; they use the same ports,
+  so run one at a time.
 .PARAMETER Rebuild
   Throw the demo data away and build it again.
 .PARAMETER NoBrowser
   Do not open the portal in the browser.
 #>
 [CmdletBinding()]
-param([switch]$Rebuild, [switch]$NoBrowser)
+param([ValidateSet('tv', 'ceramic')][string]$Scenario = 'tv', [switch]$Rebuild, [switch]$NoBrowser)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\lib-stack.ps1"
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
-$data = Join-Path $root '_integrated-demo'
+$demo = @{
+  tv      = @{ Folder = '_integrated-demo'; Company = 'Nile Vision Electronics'; Code = 'NILE'; Chain = 'scenario\chain\run.mjs' }
+  ceramic = @{ Folder = '_ceramic-demo';    Company = 'Demo Ceramics Co.';       Code = 'DCER'; Chain = 'scenario\ceramic\run.mjs' }
+}[$Scenario]
+$data = Join-Path $root $demo.Folder
 $marker = Join-Path $data 'built.json'
 $ports = @{ mizan = 4810; gmes = 4701; hr = 8790 }
 $password = 'Demo-2026!'
@@ -45,12 +53,12 @@ if (-not (Test-Path $marker)) {
   $logs = Join-Path $data 'logs'; New-Item -ItemType Directory -Force -Path $logs | Out-Null
   $stack = $null
   try {
-    $stack = New-Stack -Root $root -DataRoot $data -Ports $ports -Password $password -LogDir $logs -CompanyName 'Nile Vision Electronics' -CompanyCode 'NILE' -Visible
+    $stack = New-Stack -Root $root -DataRoot $data -Ports $ports -Password $password -LogDir $logs -CompanyName $demo.Company -CompanyCode $demo.Code -Visible
     Invoke-Pairing -Root $root -InputJson $stack.Json
     $env:CHAIN_PAIRED = '1'; $env:CHAIN_INPUT = $stack.Json
-    & $node (Join-Path $root 'complete-company\scenario\chain\run.mjs')
+    & $node (Join-Path $root "complete-company\$($demo.Chain)")
     if ($LASTEXITCODE -ne 0) { throw 'the demo scenario did not pass; see the messages above' }
-    @{ company = $stack.Company; built = (Get-Date -Format o); password = $password; hrPassword = $stack.Logins.hr.password } | ConvertTo-Json | Set-Content -LiteralPath $marker -Encoding utf8
+    @{ scenario = $Scenario; company = $stack.Company; built = (Get-Date -Format o); password = $password; hrPassword = $stack.Logins.hr.password } | ConvertTo-Json | Set-Content -LiteralPath $marker -Encoding utf8
   } catch {
     if ($stack) { foreach ($p in $stack.Procs) { if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } } }
     Start-Sleep -Seconds 1
@@ -65,6 +73,11 @@ if (-not (Test-Path $marker)) {
   }
   Wait-Up "http://127.0.0.1:$($ports.mizan)/api/health" 90
   Wait-Up "http://127.0.0.1:$($ports.gmes)/api/health" 90
+  # the two demo companies share the ports: never show one while the other is running
+  $running = (Invoke-RestMethod "http://127.0.0.1:$($ports.gmes)/api/health").company
+  if ($running -ne $built.company) {
+    Write-Host 'Another demo company is running on these ports: close its windows first, then start this one again.' -ForegroundColor Red; exit 1
+  }
 }
 
 # ---- the portal

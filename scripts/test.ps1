@@ -30,6 +30,18 @@ foreach ($r in $real) {
   if ($r.Key -ne 'space') { Check ($r.Port -ne $d.Port) "$($r.Key): demo port differs from the real one" }
 }
 
+Write-Host '== demo companies'
+foreach ($d in @(@{ bat = 'Start-Integrated-Demo.bat'; chain = 'scenario\chain\run.mjs' }, @{ bat = 'Start-Ceramic-Demo.bat'; chain = 'scenario\ceramic\run.mjs' })) {
+  Check (Test-Path -LiteralPath (Join-Path $script:PackageRoot $d.bat)) "$($d.bat) exists"
+  & (Get-Command node).Source --check (Join-Path $script:PackageRoot $d.chain) 2>$null
+  Check ($LASTEXITCODE -eq 0) "$($d.chain) is valid JavaScript"
+}
+Check ((Get-Content -LiteralPath (Join-Path $script:PackageRoot 'Start-Ceramic-Demo.bat') -Raw) -match '-Scenario ceramic') 'the ceramic launcher asks for the ceramic scenario'
+foreach ($f in @('agent\cdp.mjs', 'agent\stage.mjs', 'agent\skills\mizan.mjs', 'agent\try-journal.mjs', 'agent\studio\record.mjs', 'agent\studio\audio.mjs', 'agent\studio\render.mjs', 'agent\studio\shoot-journal.mjs', 'agent\skills\gmes.mjs', 'agent\skills\space.mjs', 'agent\studio\shoot-floor-to-container.mjs', 'agent\studio\sets\gmes-tile-line.mjs')) {
+  & (Get-Command node).Source --check (Join-Path $script:PackageRoot $f) 2>$null
+  Check ($LASTEXITCODE -eq 0) "$f is valid JavaScript"
+}
+
 Write-Host '== portal'
 $port = 45990
 $p = Start-Process -FilePath (Get-Command node).Source -ArgumentList "`"$(Join-Path $script:PackageRoot 'portal\server.mjs')`" --port $port --demo" -PassThru -WindowStyle Hidden

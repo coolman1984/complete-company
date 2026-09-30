@@ -9,11 +9,11 @@
       "demo": { "port": 4810, "launcher": "start-demo.bat", "arguments": [] }
     },
     {
-      "key": "gmes", "name": "GMES", "nameAr": "التصنيع GMES",
+      "key": "gmes", "name": "Itqan", "nameAr": "إتقان",
       "role": "Manufacturing execution: work orders, quality, OEE, shipping", "roleAr": "تنفيذ التصنيع: أوامر الشغل والجودة والكفاءة والشحن",
       "folder": "GMES", "health": "/api/health",
-      "real": { "port": 4700, "launcher": "Start-GMES.bat", "arguments": ["-NoBrowser"] },
-      "demo": { "port": 4701, "launcher": "Start-GMES-Demo.bat", "arguments": ["-NoBrowser"] }
+      "real": { "port": 4700, "launcher": "Start-Itqan.bat", "arguments": ["-NoBrowser"] },
+      "demo": { "port": 4701, "launcher": "Start-Itqan-Demo.bat", "arguments": ["-NoBrowser"] }
     },
     {
       "key": "hr", "name": "HR-System", "nameAr": "الموارد البشرية",

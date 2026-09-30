@@ -7,7 +7,7 @@ import { session } from './pair.mjs';
 /** How each application is asked (its sign-in, and the route that makes and rehearses a backup). */
 export const APPS = [
   { key: 'mizan', name: 'Mizan', cookie: 'mizan_sid', login: (l) => ['POST', '/api/auth/login', { username: l.user, password: l.password }], backup: '/api/system/backups' },
-  { key: 'gmes', name: 'GMES', cookie: 'gmes_sid', login: (l) => ['POST', '/api/auth/login', { login: l.user, password: l.password }], backup: '/api/system/backups' },
+  { key: 'gmes', name: 'Itqan', cookie: 'gmes_sid', login: (l) => ['POST', '/api/auth/login', { login: l.user, password: l.password }], backup: '/api/system/backups' },
   { key: 'hr', name: 'HR-System', cookie: 'hr_sid', login: (l) => ['POST', '/api/login', { username: l.user, password: l.password }], backup: '/api/admin/backups' },
 ];
 

@@ -201,7 +201,7 @@ Landed adders on imported material (about 90% of value): freight + insurance abo
 
 | Step | Value | Source |
 |---|---|---|
-| Samsung 55" Crystal UHD U8000F retail, Samsung.com Egypt | EGP 21,999 (Mar 2026 promo; list 22,999) | [S12] |
+| Leading brand 55" UHD LED retail, brand store Egypt | EGP 21,999 (Mar 2026 promo; list 22,999) | [S12] |
 | Challenger brand retail (sample NV-55U) | EGP 18,999 incl. 14% VAT | [E] |
 | Net of VAT | EGP 16,666 | calc |
 | Retailer margin about 15% | Sell-in about EGP 14,166 = **USD 278** at 51 EGP/USD | [E] |
@@ -218,7 +218,7 @@ Landed adders on imported material (about 90% of value): freight + insurance abo
 |---|---|---|
 | Open cell | **BOE, CSOT (TCL), HKC** (China); Innolux, AUO (TW) | Chinese makers dominate large sizes. Allocation is negotiated monthly or quarterly. |
 | SoC | MediaTek, Realtek, Amlogic, Novatek (TW/CN) | Through franchised distributors |
-| Memory | Samsung, SK hynix, Micron, CXMT | 2026 price surge [S7] |
+| Memory | Korean, US and Chinese memory makers | 2026 price surge [S7] |
 | LED bars, films, diffuser, chassis | China | QD film (QLED) from Korea/China |
 | Resin (HIPS/ABS/PP) | SABIC, INEOS, LG Chem via Egyptian distributors | 2-4 weeks |
 | Cartons, EPS, printed matter, labels | **Local Egyptian suppliers** (10th of Ramadan, Sadat City, 6th of October) | 3-10 days [E] |
@@ -343,10 +343,10 @@ Working days: 52 x 6 = 312, minus about 14 public holidays and 8 days of planned
 | 1.15 | 1.25 | 0.95 | 0.85 | 1.00 | 1.05 | 0.85 | 0.85 | 0.95 | 0.95 | 1.25 | 0.90 |
 
 Drivers:
-- **Pre-Ramadan/Ramadan.** Ramadan 2026 was about 18 Feb-19 Mar. Samsung Egypt ran "Eid offers" on 17-31 Mar 2026 [S12]. Ramadan 2027 is about 8 Feb-9 Mar and moves about 11 days earlier each year.
+- **Pre-Ramadan/Ramadan.** Ramadan 2026 was about 18 Feb-19 Mar. A leading brand ran "Eid offers" on 17-31 Mar 2026 [S12]. Ramadan 2027 is about 8 Feb-9 Mar and moves about 11 days earlier each year.
 - **FIFA World Cup 2026** (11 Jun-19 Jul), with Egypt qualified [S29].
 - **Back-to-school** in September.
-- **White Friday / Black Friday.** Samsung Egypt's Black Friday price list ran 9-30 Nov 2025 [S12b].
+- **White Friday / Black Friday.** A leading brand's Black Friday price list ran 9-30 Nov 2025 [S12b].
 - **Exports** (GCC, Africa) are flatter, with a peak in Q3-Q4 for GCC Ramadan and year-end stocking.
 
 ### 4.6 Forecast accuracy (1 - MAPE, model x month, lag 1) [E]
@@ -364,15 +364,15 @@ Drivers:
 | Topic | Reference | Source |
 |---|---|---|
 | Egypt TV channels | Appliance & electronics specialists lead: **B.TECH** (omnichannel + consumer finance), **2B**, **Raya Shop**, Carrefour (MAF), Spinneys, Hyper One, e-commerce (Amazon.eg, Noon, Jumia), plus brand e-stores. Samsung leads TVs in 2025. | [S30] |
-| Market reference | Samsung held 37% of Egypt's TV market in 2016; the market was about 500k units in 2015 and has grown since. Samsung Beni Suef: about 6 M units/yr capacity (TV, monitors, tablets), about 85% exported to 55+ countries; about 1,800 employees (older figure). | [S31][S32] |
-| Consumer finance | Installments via valU, Contact, bank cards (in Samsung Egypt T&Cs) | [S12] |
+| Market reference | The market leader held 37% of Egypt's TV market in 2016; the market was about 500k units in 2015 and has grown since. The largest local TV plant: about 6 M units/yr capacity, mostly exported (published figure). | [S31][S32] |
+| Consumer finance | Installments via valU, Contact, bank cards (in a leading brand's T&Cs) | [S12] |
 | Retail credit terms | Key accounts 45-90 days (open account, credit-insured or bank guarantee); traditional dealers 30-60 days or post-dated cheques; e-commerce 30 days | [E] |
 | Export terms | GCC distributors: LC at sight or CAD / 30-60 days insured; Africa: LC at sight or 30-50% advance | [E] |
 | Order to delivery | Domestic MTS from FG stock: 2-5 days; export MTO: 3-6 weeks (slot + booking); Sokhna to Jebel Ali about 7-12 days sea | [E] |
 | ATP / CTP | ATP = on-hand + planned receipts - committed orders, per model/week. CTP adds a capacity + material check (open cells in transit are the binding constraint). | standard |
 | OTIF | Orders delivered on the agreed date **and** in full / total orders. World-class **95-98%**; many retail contracts require at least 95% | [S33] |
 | OTD | On-time only (date vs. confirmed date); report both vs. requested and vs. confirmed date | standard |
-| Warranty | Samsung Egypt: 2-year warranty (2016) | [S31] |
+| Warranty | Market leader: 2-year warranty (2016) | [S31] |
 | Field failure | About 3% of LCD TVs needed repair in the first 3 years (Consumer Reports); brands range 2-7% | [S34] |
 | Returns / warranty provision | 1st-year service-call rate 1-2.5%; warranty provision 1.5-2.5% of net sales | [E] |
 
@@ -472,7 +472,7 @@ Fully loaded cost of a G1 operator: about EGP 12,000-13,000/month = about USD 24
 | Field DPPM (DOA) | DOA units / shipped units x 1e6 | < 3,000 | 3,000-8,000 | [E] |
 | Schedule adherence | Sum of min(actual, plan) per model/day / plan | at least 95% | 85-90% | [E] |
 | Labour productivity (FA, 55") | Sets / direct FA person-hour | 3.5-4.5 | 2.5-3.2 | [E] |
-| Plant productivity | Sets / total employee / year | 2,000+ | 1,000-1,500 | [E]; Samsung Beni Suef about 3,000+ (automated, older headcount) [S32] |
+| Plant productivity | Sets / total employee / year | 2,000+ | 1,000-1,500 | [E]; largest local plant about 3,000+ (automated, published figures) [S32] |
 | Conversion cost / set (55") | Labour + overhead | USD 6-8 | USD 9-14 | [E] |
 | Cash-to-cash | DIO + DSO - DPO | 20-40 d | 50-80 d | [E] |
 
@@ -519,7 +519,7 @@ Fully loaded cost of a G1 operator: about EGP 12,000-13,000/month = about USD 24
 | Domain | World-class products | Notes |
 |---|---|---|
 | ERP | SAP S/4HANA (PP, MM, SD, QM, EWM, FI, CO), SAP IBP | Planning time fence + firming types [S23] |
-| MES | Siemens Opcenter Execution Electronics, Samsung SDS **Nexplant MES**, Samsung in-house GMES, SAP Digital Manufacturing | Nexplant: scheduling, resource/process control, yield/equipment data collection, equipment automation [S40] |
+| MES | Siemens Opcenter Execution Electronics, SAP Digital Manufacturing, other vendors' electronics MES | scheduling, resource/process control, yield/equipment data collection, equipment automation |
 | HR | SAP SuccessFactors (Employee Central, Time Tracking, Learning, ECP), Workday HCM | Learning module stores ESD/IPC certifications |
 
 ---
@@ -543,9 +543,9 @@ Fully loaded cost of a G1 operator: about EGP 12,000-13,000/month = about USD 24
 | Plan volume 2026/27 | **800,000 sets/yr** (avg 2,760/day; utilization 63-75% per line) | [E] |
 | Split domestic / export | 70% Egypt / 30% export (GCC, Iraq, Libya, East Africa) | [E] |
 
-### 10.2 Product range (retail incl. VAT; sell-in = retail / 1.14 x 0.85; FX 51) [E; anchored on Samsung Egypt prices S12]
+### 10.2 Product range (retail incl. VAT; sell-in = retail / 1.14 x 0.85; FX 51) [E; anchored on a leading brand's Egypt prices S12]
 
-| Model | Size / type | Line | Mix | Units/yr | Samsung EG ref. retail | NV retail (EGP) | Sell-in (EGP) | Sell-in (USD) | Material (USD) | Std cost (USD) | GM % |
+| Model | Size / type | Line | Mix | Units/yr | Leading brand ref. retail | NV retail (EGP) | Sell-in (EGP) | Sell-in (USD) | Material (USD) | Std cost (USD) | GM % |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | NV-43U | 43" UHD | FA-1 | 20% | 160,000 | 16,499 (U8000F, Nov 25) | 12,499 | 9,319 | 182.7 | 141.0 | 154.3 | 15.5% |
 | NV-50U | 50" UHD | FA-1 | 12% | 96,000 | 18,999 | 15,999 | 11,929 | 233.9 | 184.5 | 200.8 | 14.2% |
@@ -697,8 +697,8 @@ Annual P&L (sample) [E]:
 - [S9] TrendForce LCD panel price page (55" UHD OC USD 123, 20 Aug 2026): https://www.trendforce.com/price/lcd/panel
 - [S10] Amwal Al Ghad, EGP 50.94/51.04, 1 Sep 2026: https://en.amwalalghad.com/?p=230472
 - [S11] Pound Sterling Live, USD-EGP history 2026: https://www.poundsterlinglive.com/history/USD-EGP-2026
-- [S12] Samsung Egypt TV price list and Eid offers, 17-31 Mar 2026: https://images.samsung.com/is/content/samsung/assets/eg/terms-and-conditions/deals/SEEG_TV_Offers_TCs_Eid_Offers_202603171.pdf
-- [S12b] Samsung Egypt Black Friday TV price list, 9-30 Nov 2025: https://images.samsung.com/is/content/samsung/assets/eg/terms-and-conditions/SEEG_BF_revised_291025WS.pdf
+- [S12] A leading brand's Egypt TV price list and Eid offers, 17-31 Mar 2026 (public PDF).
+- [S12b] A leading brand's Egypt Black Friday TV price list, 9-30 Nov 2025 (public PDF).
 - [S13] Nowlun, China to Egypt sea freight 2026 guide (transit, rates, ACID): https://www.nowlun.com/en/blogs/41-sea-freight-importing-from-china-to-egypt-the-complete-2026-guide-cost-transit-time-acid ; Goodhope freight Sep 2026: https://goodhopefreight.com/egypt/2026-freight.html
 - [S14] Nafeza (Egypt national single window): https://www.nafeza.gov.eg/en/news/list
 - [S15] Enterprise, customs clearance time and Nafeza: https://enterpriseam.com/egypt/2025/12/10/customs-authority-head-ahmad-amawi-on-customs-reforms-and-trade-movement-part-i/ ; https://enterpriseam.com/egypt/2025/08/27/govt-targets-early-2026-for-nafeza-air-freight-rollout/
@@ -717,8 +717,8 @@ Annual P&L (sample) [E]:
 - [S28] Ahram Online, Egypt headline inflation 12.7% in Aug 2026: https://english.ahram.org.eg/News/576399.aspx
 - [S29] Foot Africa, Egypt qualifies for World Cup 2026: https://foot-africa.com/en/news/world-cup-2026-mohamed-salah-secures-qualification-for-egypt-911091/
 - [S30] Euromonitor, Home Video in Egypt / Appliances and Electronics Specialists in Egypt: https://www.euromonitor.com/home-video-in-egypt/report ; https://www.euromonitor.com/appliances-and-electronics-specialists-in-egypt/report
-- [S31] Amwal Al Ghad, "Samsung Egypt dominates TV market by 37%" (2016): https://en.amwalalghad.com/samsung-egypt-dominates-tv-market-by-37/
-- [S32] MEA Tech Watch, Samsung Egypt regional hub (Beni Suef 6 M units, 85% export): https://meatechwatch.com/2024/08/28/samsung-electronics-eyes-egypt-as-a-regional-hub-for-electronics-production-and-exports ; CairoScene: https://cairoscene.com/Business/Koreans-come-to-Egypt's-Rescue
+- [S31] Business press, Egypt TV market shares (2016).
+- [S32] Tech press, the largest local electronics plant as a regional hub (2024).
 - [S33] Red Stag Fulfillment, OTIF benchmarks: https://redstagfulfillment.com/on-time-and-in-full-otif/
 - [S34] InformationWeek, "LCD, Plasma TVs Found Highly Reliable" (Consumer Reports repair rates): https://www.informationweek.com/it-leadership/lcd-plasma-tvs-found-highly-reliable
 - [S35] Mondaq, "Egypt Labour Law 14 of 2025 - workers' rights, employer duties": https://www.mondaq.com/employee-rights-labour-relations/1791586/egypt-labour-law-14-of-2025-%7C-workers-rights-employer-duties
@@ -726,4 +726,3 @@ Annual P&L (sample) [E]:
 - [S37] Andersen Egypt, personal income tax 2026: https://eg.andersen.com/personal-income-tax/ ; PwC tax summaries: https://taxsummaries.pwc.com/egypt/individual/taxes-on-personal-income
 - [S38] Enterprise, industrial electricity price hikes (Sep 2024): https://enterpriseam.com/egypt/2024/09/08/our-long-awaited-electricity-rate-hikes-are-here-capping-off-a-busy-summer-of-subsidy-reform/ ; Mada Masr: https://www.madamasr.com/en/?p=261257
 - [S39] ISA-95 / B2MML: Sepasoft, "Understanding B2MML": https://docs.sepasoft.com/articles/user-manual/understanding-b2mml ; TeepTrak, MES architecture ISA-95: https://teeptrak.com/en/mes-architecture-isa-95-implementation-2026/
-- [S40] Samsung SDS Nexplant MES: https://www.samsungsds.com/en/mes/nexplant-mes.html
