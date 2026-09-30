@@ -40,7 +40,7 @@ for (const [take, pace] of [['take-show', 1], ['take-fast', 0]]) {
       });
       await s.say('ودي قائمة الدخل بعد القيد: المصروف ظهر في مكانه');
       await openScreen(s, 'قائمة الدخل', { waitFor: `location.pathname.includes('income')` });
-      await s.waitText('185');
+      await s.waitText('الكهرباء والمياه والمرافق'); // the account's row; the total grows with each take
       s.mark('done');
       await s.wait(1800);
       return { number: entry.number };
