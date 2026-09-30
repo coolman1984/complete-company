@@ -47,6 +47,10 @@ try {
   Check ($nf -eq 404) 'nothing but the page and the status is served'
 } finally { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
 
+Write-Host '== verifier (fake applications, no network)'
+$vt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'scenario\verify\verify.test.mjs') 2>&1
+Check ($LASTEXITCODE -eq 0) 'the verifier fails when the applications disagree and passes when they agree'
+
 Write-Host ''
 if ($failures.Count) { Write-Host "$($failures.Count) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host 'ALL GREEN' -ForegroundColor Green
