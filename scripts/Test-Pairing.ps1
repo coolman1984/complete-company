@@ -4,11 +4,13 @@
   found) in a temporary folder on spare ports, pairs them with the portal's pairing code, then follows one order:
   item + customer + sales order in Mizan -> mirrored in GMES -> planning run -> requisition back in Mizan -> crew
   requirement in HR. Everything is stopped and the temporary folder removed at the end. Real and demo data are never touched.
+.PARAMETER Chain
+  After pairing, run the whole chain (scenario\chain\run.mjs) instead of the short order check.
 .PARAMETER Keep
   Keep the temporary folder (for looking at the databases after a failure).
 #>
 [CmdletBinding()]
-param([switch]$Keep)
+param([switch]$Keep, [switch]$Chain)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $tmp = Join-Path ([IO.Path]::GetTempPath()) ("cc-pair-" + [guid]::NewGuid().ToString('N').Substring(0, 8))
@@ -85,6 +87,13 @@ try {
   $out = & $node --input-type=module -e "import { pair } from 'file:///$pairJs'; const r = await pair(JSON.parse(process.env.PAIR_INPUT)); console.log(JSON.stringify(r));" | ConvertFrom-Json
   foreach ($s in $out.steps) { Check "pairing: $($s.step)" $s.ok $s.detail }
 
+  if ($Chain) {
+    $env:CHAIN_PAIRED = '1'
+    $env:CHAIN_INPUT = $input
+    & $node (Join-Path $root 'complete-company\scenario\chain\run.mjs')
+    if ($LASTEXITCODE -ne 0) { throw 'the chain did not pass' }
+    Write-Host 'CHAIN SCENARIO: PASSED' -ForegroundColor Green
+  } else {
   # ---- one order through both applications
   $customer = (Call POST "$mz/api/parties" @{ kind = 'customer'; name = 'B.TECH' } $ms).id
   $tv = (Call POST "$mz/api/items" @{ sku = 'TV55'; nameEn = 'TV 55'; nameAr = 'تلفزيون 55'; kind = 'product'; unit = 'PCS'; salePrice = 1500000; materialType = 'raw'; leadTimeDays = 3 } $ms).id
@@ -101,6 +110,7 @@ try {
   Check 'GMES pushes to Mizan without errors' (-not ($push.peers | Where-Object { $_.error })) ($push | ConvertTo-Json -Compress)
   $inMizan = Call GET "$mz/api/purchase-requisitions" $null $ms
   Check 'the requisition arrives in Mizan' (@($inMizan).Count -ge 1) ($inMizan | ConvertTo-Json -Compress -Depth 3)
+  }
   Write-Host 'PAIRING SMOKE TEST: PASSED' -ForegroundColor Green
 }
 finally {
