@@ -59,9 +59,15 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
   // ------------------------------------------------------------------ opening stock: what the plant held before the window (a receipt in Mizan, dated the day before)
   async function openingStock() {
     const need = {};
-    const explode = (code, qty) => { for (const l of book.boms[code]?.lines ?? []) { const q = qty * l.qty_per; need[l.component] = (need[l.component] ?? 0) + q; explode(l.component, q); } };
-    for (const e of book.events) if (e.kind === 'sales_order') for (const l of e.lines) explode(l.item, l.qty);
-    // what the demand plans ask for beyond the orders is covered by purchases during the window; the opening stock covers the orders and a margin
+    // The plant starts with the stock its buyers had ordered before the window: each component covers the orders due within its own
+    // lead time (plus ten days) and a margin. Later demand is bought during the window, so purchasing, receiving and incoming
+    // inspection are really played, and the long-lead parts (open cells, chips) are never short on day one.
+    const explode = (code, qty, due) => { for (const l of book.boms[code]?.lines ?? []) {
+      const q = qty * l.qty_per, it = itemOf[l.component];
+      if (due <= addDays(from, (it?.lead_time_days ?? 0) + 10)) need[l.component] = (need[l.component] ?? 0) + q;
+      explode(l.component, q, due);
+    } };
+    for (const e of book.events) if (e.kind === 'sales_order') for (const l of e.lines) explode(l.item, l.qty, l.requested);
     const bySupplier = {};
     for (const [code, qty] of Object.entries(need)) {
       const it = itemOf[code];
@@ -322,8 +328,12 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
       if (!gso) { for (const p of picks) taken[p.l.item] -= p.n; continue; }   // not mirrored yet: tomorrow
       const export_ = so.channel === 'export';
       const ctype = export_ ? '40HC' : 'TRUCK';
-      const ship = await gm('POST', '/api/shipping-orders/from-sales-order', { salesOrderId: gso.id, shipDate: day, containerType: ctype, lines: picks.map((p) => ({ lineNo: p.l.lineNo, qty: p.n })) });
-      for (const p of picks) {
+      // a shipping order lists each product once: two lines of one product (a mega order with several dates) go in separate shipping orders
+      const rounds = [];
+      for (const p of picks) { const r = rounds.find((x) => !x.some((y) => y.l.item === p.l.item)); if (r) r.push(p); else rounds.push([p]); }
+      for (const round of rounds) {
+      const ship = await gm('POST', '/api/shipping-orders/from-sales-order', { salesOrderId: gso.id, shipDate: day, containerType: ctype, lines: round.map((p) => ({ lineNo: p.l.lineNo, qty: p.n })) });
+      for (const p of round) {
         const serials = S.fin[p.l.item].splice(0, p.n);
         const codes = [];
         for (const sn of serials) { const r = await gm('POST', '/api/pallets/pack', { commandId: cmd('pack'), serial: sn }); if (!codes.includes(r.pallet)) codes.push(r.pallet); }
@@ -343,6 +353,7 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
         if (day > p.l.requested) bump('lateShipUnits', p.n);
       }
       bump('shipments');
+      }
     }
     if (shipped) await pump();
     return shipped;
@@ -383,6 +394,7 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
     if (hr) await hr('PUT', '/api/sim/today', { today: day });
     await demand(day, eventsOn[day] ?? []);
     const row = { day, work, orders: (eventsOn[day] ?? []).filter((e) => e.kind === 'sales_order').length };
+    if (people && !work) { tm(day, '08:30'); await people.morning(day); }   // HR's office works on the plant's rest days too: requisitions, candidates, training dates
     if (work) {
       tm(day, '07:15'); await planning();
       tm(day, '07:30'); row.released = await planner(day);

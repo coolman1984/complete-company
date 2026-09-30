@@ -45,6 +45,10 @@ try {
   Check ($html.Content -match 'dir' -and $html.Content -match 'العربية') 'page has the Arabic switch'
   $nf = try { (Invoke-WebRequest "http://127.0.0.1:$port/../apps.json" -UseBasicParsing).StatusCode } catch { $_.Exception.Response.StatusCode.value__ }
   Check ($nf -eq 404) 'nothing but the page and the status is served'
+  $sc = Invoke-WebRequest "http://127.0.0.1:$port/scenario" -UseBasicParsing
+  Check ($sc.StatusCode -eq 200 -and $sc.Content -match 'Nile Vision') 'the Scenario page is served'
+  $sj = Invoke-RestMethod "http://127.0.0.1:$port/api/scenario"
+  Check ($null -ne $sj.built) 'the Scenario data answers (built or not yet)'
 } finally { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue }
 
 Write-Host '== verifier (fake applications, no network)'
@@ -53,6 +57,16 @@ Check ($LASTEXITCODE -eq 0) 'the verifier fails when the applications disagree a
 $bt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'portal\backup.test.mjs') 2>&1
 Check ($LASTEXITCODE -eq 0) 'back up everything counts only a rehearsed backup and names the application that failed'
 
+Write-Host '== scenario engine (mini run: five days, one model, the real applications)'
+$mesServer = Join-Path (Split-Path -Parent $script:PackageRoot) 'GMES\apps\mes-server'
+$mizanDist = Join-Path (Split-Path -Parent $script:PackageRoot) 'Accounting-sys\apps\server\dist\app.js'
+if ((Test-Path -LiteralPath (Join-Path (Split-Path -Parent (Split-Path -Parent $mesServer)) 'node_modules')) -and (Test-Path -LiteralPath $mizanDist)) {
+  $mini = & (Join-Path $PSScriptRoot 'scenario.ps1') -Action mini 2>&1
+  Check ($LASTEXITCODE -eq 0 -and ($mini -match 'SCENARIO: PASSED')) 'the mini scenario plays, reconciles across the applications and backs them up'
+  if ($LASTEXITCODE -ne 0) { $mini | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" } }
+} else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
+
 Write-Host ''
 if ($failures.Count) { Write-Host "$($failures.Count) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host 'ALL GREEN' -ForegroundColor Green
+

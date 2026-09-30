@@ -18,7 +18,7 @@ export function toMilli(text) {
   return (m[1] ? -1 : 1) * (Number(m[2]) * U + Number((m[3] ?? '').padEnd(3, '0') || 0));
 }
 
-export async function verify({ mizan, gmes, hr, day }) {
+export async function verify({ mizan, gmes, hr, day, kpi }) {
   const checks = [];
   const add = (area, name, ok, detail = '') => checks.push({ area, name, ok: !!ok, detail: ok ? '' : String(detail).slice(0, 500) });
   const safe = async (area, name, fn) => { try { await fn(); } catch (e) { add(area, name, false, `could not be checked: ${e.message}`); } };
@@ -68,7 +68,44 @@ export async function verify({ mizan, gmes, hr, day }) {
       wip.filter((w) => w.status === 'closed' && w.issued_value !== w.received_value).map((w) => `${w.code}: issued ${w.issued_value}, received ${w.received_value}`).join('; '));
   });
 
+  // ---- stock: finished goods made = on hand in Mizan + shipped, per product (GMES: loose + pallets not yet shipped = what should still be in stock)
+  await safe('Stock', "finished goods in GMES (not yet shipped) = Mizan's stock, per product", async () => {
+    // the universe is every product that ships (it has a packing specification), so a plant that shipped everything is compared with zero
+    const specs = (await gmes('GET', '/api/pack-specs')).filter((s) => s.per_pallet);
+    const fg = new Map((await gmes('GET', '/api/fg-stock')).map((f) => [f.code, f]));
+    const items = await mizan('GET', '/api/items');
+    const rows = Array.isArray(items) ? items : items.rows ?? [];
+    const idOf = new Map(rows.map((i) => [i.sku ?? i.code, i.id]));
+    const levels = await mizan('GET', '/api/inventory/levels');
+    const bad = [];
+    for (const s of specs) {
+      const f = fg.get(s.code);
+      const gm = f ? (f.loose + f.open + f.closed + f.loaded) * U : 0;
+      const mz = levels[idOf.get(s.code)] ?? 0;
+      if (gm !== mz) bad.push(`${s.code}: GMES holds ${gm / U}, Mizan ${mz / U}`);
+    }
+    add('Stock', "finished goods in GMES (not yet shipped) = Mizan's stock, per product", bad.length === 0 && specs.length > 0, bad.length ? bad.slice(0, 8).join('; ') : 'no product has a packing specification');
+  });
+  await safe('Stock', 'no item has negative stock in Mizan', async () => {
+    const levels = await mizan('GET', '/api/inventory/levels');
+    const neg = Object.entries(levels).filter(([, q]) => q < 0);
+    add('Stock', 'no item has negative stock in Mizan', neg.length === 0, neg.slice(0, 5).map(([id, q]) => `item ${id}: ${q / U}`).join('; '));
+  });
+  await safe('Planning', 'every requisition Mizan received from planning names its source run, and every work order its planned order or a reason', async () => {
+    const reqs = await mizan('GET', '/api/purchase-requisitions');
+    const unsourced = reqs.filter((r) => !r.mrp_run && !r.notes).length;
+    const wos = await gmes('GET', '/api/work-orders');
+    const manual = wos.filter((w) => !w.planned_order_id && !w.pegging).length;
+    add('Planning', 'every requisition Mizan received from planning names its source run, and every work order its planned order or a reason', unsourced === 0 && manual === 0, `${unsourced} requisitions and ${manual} work orders without a source`);
+  });
+
   // ---- money
+  await safe('Money', 'every delivered sales order line is on an invoice that was posted (no draft left)', async () => {
+    const docs = await mizan('GET', '/api/documents?kind=sales_invoice');
+    const rows = docs.rows ?? docs;
+    const drafts = rows.filter((d) => d.status === 'draft');
+    add('Money', 'every delivered sales order line is on an invoice that was posted (no draft left)', drafts.length === 0, `${drafts.length} draft invoice(s), e.g. ${drafts.slice(0, 3).map((d) => d.id).join(', ')}`);
+  });
   await safe('Money', "Mizan's trial balance is balanced", async () => {
     const y = (day ?? new Date().toISOString().slice(0, 10)).slice(0, 4);
     const tb = await mizan('GET', `/api/reports/trial-balance?from=${y}-01-01&to=${y}-12-31`);
@@ -87,6 +124,28 @@ export async function verify({ mizan, gmes, hr, day }) {
       const missing = [...need].filter((k) => !have.has(k));
       add('People', 'every crew requirement received by HR shows in its staffing gap', missing.length === 0 && need.size > 0, missing.length ? `missing in HR: ${missing.slice(0, 5).join(', ')}` : 'GMES has no crew requirement yet');
     });
+  }
+  if (hr) {
+    await safe('People', 'the people GMES holds are the people HR has (active, by code)', async () => {
+      const mine = (await hr('GET', '/api/employee')).filter((e) => !e.deleted && e.employment_status === 'Active').map((e) => e.code).sort();
+      const theirs = (await gmes('GET', '/api/employees')).filter((e) => e.active).map((e) => e.code).sort();
+      const missing = mine.filter((c) => !theirs.includes(c)), extra = theirs.filter((c) => !mine.includes(c));
+      add('People', 'the people GMES holds are the people HR has (active, by code)', missing.length === 0 && extra.length === 0 && mine.length > 0,
+        `missing in GMES: ${missing.slice(0, 5).join(', ')}; not active in HR: ${extra.slice(0, 5).join(', ')}`);
+    });
+    await safe('People', 'no overtime is approved beyond the plant policy caps', async () => {
+      const pol = await hr('GET', '/api/overtime/policy');
+      const ot = (await hr('GET', '/api/overtime_request')).filter((r) => !r.deleted && r.status === 'approved');
+      const perDay = new Map();
+      for (const r of ot) perDay.set(`${r.employee_id}|${r.work_date}`, (perDay.get(`${r.employee_id}|${r.work_date}`) ?? 0) + Number(r.planned_minutes));
+      const over = [...perDay].filter(([, m]) => m > pol.max_daily_minutes_incl_ot);
+      add('People', 'no overtime is approved beyond the plant policy caps', over.length === 0, `${over.length} person-days over ${pol.max_daily_minutes_incl_ot} minutes`);
+    });
+  }
+
+  // ---- service level, against what the book expects (tolerance is the book's own range)
+  if (kpi) {
+    for (const k of kpi) add('Service', k.name, k.value >= k.range[0] && k.value <= k.range[1], `${k.value} is outside ${k.range[0]}..${k.range[1]}`);
   }
   return { ok: checks.every((c) => c.ok), checks };
 }

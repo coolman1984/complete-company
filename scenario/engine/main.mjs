@@ -42,8 +42,11 @@ try {
   await pump();
   if (!flag('--setup-only')) {
     result = await play({ h, book, ids, g, people, pump, log, say });
+    if (people) result.people = { ...people.stats, refusedCount: people.refused.length, refused: people.refused.slice(0, 60) };
     say('verify');
-    const report = await verify({ mizan: mz, gmes: gm, hr, day: h.clock.day() });
+    const c = result.counters;
+    const kpi = c.shipped > 0 ? [{ name: 'units shipped on or before the requested day are within the book\'s expected share (%)', value: Math.round(1000 * (1 - c.lateShipUnits / c.shipped)) / 10, range: book.kpi_expected.otif_domestic_key_accounts_pct }] : [];
+    const report = await verify({ mizan: mz, gmes: gm, hr, day: h.clock.day(), kpi });
     printReport(report);
     failed += report.checks.filter((c) => !c.ok).length;
     if (!report.ok) {   // what each side refused, in full: the first thing to read when a check fails

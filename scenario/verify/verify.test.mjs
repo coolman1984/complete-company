@@ -15,6 +15,12 @@ function stack(over = {}) {
     orders: [{ code: 'WO-1', completed_qty: '10' }],
     wip: [{ code: 'WO-1', status: 'closed', received_qty: 10000, issued_value: 500, received_value: 500 }],
     trial: { balanced: true, totals: { debit: 100, credit: 100 } },
+    fg: [{ code: 'TV', loose: 2, open: 1, closed: 0, loaded: 0 }],
+    items: [{ id: 7, sku: 'TV' }],
+    levels: { 7: 3000 },
+    reqs: [{ mrp_run: 'RUN-1' }],
+    wos: [{ planned_order_id: 'PO-1' }],
+    invoices: [{ id: 1, status: 'posted' }],
     ...over,
   };
   const mizan = async (_m, path) => {
@@ -24,6 +30,10 @@ function stack(over = {}) {
     if (path === '/api/eco/peers') return data.peers.mizan;
     if (path === '/api/mfg/gmes-wip') return data.wip;
     if (path.startsWith('/api/reports/trial-balance')) return data.trial;
+    if (path === '/api/items') return data.items;
+    if (path === '/api/inventory/levels') return data.levels;
+    if (path === '/api/purchase-requisitions') return data.reqs;
+    if (path.startsWith('/api/documents?kind=sales_invoice')) return { rows: data.invoices };
     throw new Error('unexpected ' + path);
   };
   const gmes = async (_m, path) => {
@@ -31,7 +41,9 @@ function stack(over = {}) {
     if (path.startsWith('/api/integration/events?status=parked')) return data.parked.gmes;
     if (path === '/api/integration/events') return data.events.gmes;
     if (path === '/api/eco/peers') return data.peers.gmes;
-    if (path === '/api/work-orders') return data.orders;
+    if (path === '/api/work-orders') return data.orders.map((o, i) => ({ ...o, ...(data.wos[i] ?? {}) }));
+    if (path === '/api/fg-stock') return data.fg;
+    if (path === '/api/pack-specs') return data.fg.length ? data.fg.map((f) => ({ code: f.code, per_pallet: 10 })) : data.specs ?? [];
     throw new Error('unexpected ' + path);
   };
   return { mizan, gmes };
@@ -74,6 +86,17 @@ test('a quantity that differs between GMES and Mizan names both numbers', async 
 test('work in progress left after a close, or an unbalanced trial balance, fails', async () => {
   assert.deepEqual(failing(await verify({ ...stack({ wip: [{ code: 'WO-1', status: 'closed', received_qty: 10000, issued_value: 500, received_value: 400 }] }) })), ['a closed work order leaves nothing in work in progress']);
   assert.deepEqual(failing(await verify({ ...stack({ trial: { balanced: false, totals: { debit: 100, credit: 90 } } }) })), ["Mizan's trial balance is balanced"]);
+});
+
+test('finished goods that differ between GMES and Mizan, negative stock, unsourced planning, a draft invoice and a missed service level all fail', async () => {
+  const stock = await verify({ ...stack({ levels: { 7: 2000 } }) });
+  assert.deepEqual(failing(stock), ["finished goods in GMES (not yet shipped) = Mizan's stock, per product"]);
+  assert.match(stock.checks.find((c) => !c.ok).detail, /TV: GMES holds 3, Mizan 2/);
+  assert.deepEqual(failing(await verify({ ...stack({ levels: { 7: 3000, 9: -1000 } }) })), ['no item has negative stock in Mizan']);
+  assert.ok(failing(await verify({ ...stack({ reqs: [{}], wos: [{}] }) })).some((n) => /source run/.test(n)));
+  assert.deepEqual(failing(await verify({ ...stack({ invoices: [{ id: 2, status: 'draft' }] }) })), ['every delivered sales order line is on an invoice that was posted (no draft left)']);
+  assert.deepEqual(failing(await verify({ ...stack(), kpi: [{ name: 'on time', value: 40, range: [70, 100] }] })), ['on time']);
+  assert.deepEqual(failing(await verify({ ...stack(), kpi: [{ name: 'on time', value: 90, range: [70, 100] }] })), []);
 });
 
 test('nothing to compare is a failure, not a pass', async () => {

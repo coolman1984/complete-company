@@ -21,7 +21,7 @@ export async function backupAll({ urls, logins }) {
     const url = urls?.[app.key], login = logins?.[app.key];
     if (!url || !login?.user) continue;
     try {
-      const call = session(url, app.cookie);
+      const call = session(url, app.cookie, 300_000);
       const [method, path, body] = app.login(login);
       await call(method, path, body);
       const made = await call('POST', app.backup);

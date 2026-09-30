@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Scenario · Complete Company</title>
+<style>
+  :root { --bg: #f5f6f8; --card: #fff; --ink: #1c2230; --muted: #667085; --line: #e3e6eb; --ok: #12a150; --bad: #d92d20; --accent: #1f5eff; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.45 "Segoe UI", Tahoma, system-ui, sans-serif; background: var(--bg); color: var(--ink); }
+  header { display: flex; align-items: center; gap: 16px; padding: 18px 28px; background: var(--card); border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 20px; margin: 0; flex: 1; }
+  header a, button.lang { color: var(--accent); text-decoration: none; border: 1px solid var(--line); background: var(--card); border-radius: 6px; padding: 6px 12px; cursor: pointer; font: inherit; }
+  main { padding: 22px 28px; display: grid; gap: 18px; max-width: 1100px; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .kpi { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .kpi b { display: block; font-size: 22px; }
+  .kpi span { color: var(--muted); font-size: 12px; }
+  .pass { color: var(--ok); font-weight: 600; } .fail { color: var(--bad); font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { text-align: start; padding: 4px 8px; border-bottom: 1px solid var(--line); }
+  td.n, th.n { text-align: end; font-variant-numeric: tabular-nums; }
+  .note { color: var(--muted); font-size: 13px; }
+  pre { background: #0f1420; color: #d6deeb; padding: 12px; border-radius: 8px; overflow: auto; max-height: 320px; font-size: 12px; }
+  .scroll { max-height: 380px; overflow: auto; }
+  .bar { display: inline-block; height: 8px; background: var(--accent); border-radius: 4px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<header>
+  <h1 data-t="title">Scenario: Nile Vision, 90 days</h1>
+  <a href="/" data-t="home">Applications</a>
+  <button class="lang" id="lang">العربية</button>
+</header>
+<main id="main"><section><p class="note" data-t="loading">Loading…</p></section></main>
+<script>
+  const T = {
+    en: { title: 'Scenario: Nile Vision, 90 days', home: 'Applications', loading: 'Loading…', none: 'No scenario has been built yet. Run: scripts\\scenario.ps1 -Action build',
+          result: 'Result', passed: 'PASSED', problems: 'problem(s)', window: 'Window', scale: 'Scale', models: 'Models', took: 'Build time', calls: 'API calls',
+          orders: 'Orders', unitsOrdered: 'Units ordered', unitsShipped: 'Units shipped', open: 'Still open', lateShip: 'Units shipped after the requested day', containers: 'Containers dispatched',
+          invoices: 'Invoices', payments: 'Payments', units: 'Units made', scans: 'Scans', fails: 'Failures repaired', scrapped: 'Scrapped', lots: 'Lots received', lotsBad: 'Lots rejected or partly rejected',
+          po: 'Purchase orders', shortages: 'Days a line waited for material', people: 'People', employees: 'Employees entered', hired: 'Hired in the window', left: 'Left', overtime: 'Overtime approved', trainings: 'Training sessions',
+          refused: 'HR refusals (kept, never hidden)', days: 'Day by day', day: 'Day', made: 'Made', shipped: 'Shipped', invoiced: 'Invoiced', released: 'Released', honest: 'Honest limits',
+          limits: 'Volumes are scaled (see Scale); people, machines and lead times are the plant\'s own, so the plant looks under-loaded. Payroll is not calculated by HR (its own gate is not green): the interim payroll is Mizan\'s module.',
+          log: 'Build log', storyboard: 'The story it plays', sbtext: 'The storyboard lists the five arcs (A to E). Each is played by the engine from the book and checked by the verifier.' },
+    ar: { title: 'السيناريو: نايل فيجن، 90 يومًا', home: 'التطبيقات', loading: 'جارٍ التحميل…', none: 'لم يُبنَ أي سيناريو بعد. شغّل: scripts\\scenario.ps1 -Action build',
+          result: 'النتيجة', passed: 'نجح', problems: 'مشكلة', window: 'الفترة', scale: 'النسبة', models: 'الموديلات', took: 'زمن البناء', calls: 'نداءات API',
+          orders: 'الطلبات', unitsOrdered: 'وحدات مطلوبة', unitsShipped: 'وحدات مشحونة', open: 'ما زال مفتوحًا', lateShip: 'وحدات شُحنت بعد اليوم المطلوب', containers: 'حاويات/شاحنات خرجت',
+          invoices: 'فواتير', payments: 'مدفوعات', units: 'وحدات مصنّعة', scans: 'عمليات مسح', fails: 'أعطال تم إصلاحها', scrapped: 'خردة', lots: 'دفعات مستلمة', lotsBad: 'دفعات مرفوضة أو جزئيًا',
+          po: 'أوامر شراء', shortages: 'أيام انتظر فيها خط خامات', people: 'الأفراد', employees: 'موظفون أُدخلوا', hired: 'تعيينات في الفترة', left: 'مغادرون', overtime: 'ساعات إضافية معتمدة', trainings: 'دورات تدريب',
+          refused: 'ما رفضه HR (محفوظ وغير مخفي)', days: 'يوم بيوم', day: 'اليوم', made: 'صُنع', shipped: 'شُحن', invoiced: 'فُوتر', released: 'أُفرج عنه', honest: 'حدود صادقة',
+          limits: 'الأحجام مصغّرة (انظر النسبة)؛ الأفراد والماكينات وأزمنة التوريد كما هي، لذا يبدو المصنع أقل تحميلًا. الرواتب لا يحسبها HR (بوابتها غير خضراء): الرواتب المؤقتة من وحدة Mizan.',
+          log: 'سجل البناء', storyboard: 'القصة التي يلعبها', sbtext: 'القصة فيها خمسة أقواس (A إلى E). المحرك يلعبها من الكتاب والمدقق يفحصها.' },
+  };
+  let lang = localStorage.getItem('cc.lang') || 'en', data = null;
+  const $ = (id) => document.getElementById(id);
+  const t = (k) => T[lang][k] ?? k;
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+  const kpi = (label, v) => { const d = el('div', 'kpi'); d.append(el('b', '', v ?? '-'), el('span', '', label)); return d; };
+  const sec = (h) => { const s = el('section'); s.append(el('h2', '', h)); return s; };
+
+  function render() {
+    document.documentElement.lang = lang; document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    document.querySelectorAll('[data-t]').forEach((e) => { e.textContent = t(e.dataset.t); });
+    $('lang').textContent = lang === 'ar' ? 'English' : 'العربية';
+    const main = $('main'); main.replaceChildren();
+    if (!data) return;
+    if (!data.built) { const s = sec(t('result')); s.append(el('p', 'note', t('none'))); main.append(s); return; }
+    const m = data.manifest, c = m.result?.counters ?? {}, p = m.result?.people ?? {};
+    let s = sec(t('result'));
+    const v = el('p', m.failed ? 'fail' : 'pass', m.failed ? `${m.failed} ${t('problems')}` : t('passed'));
+    s.append(v, el('p', 'note', `${t('window')}: ${m.window.from} → ${m.window.to} · ${t('scale')}: ${m.scale} · ${t('models')}: ${m.models.length} · ${t('took')}: ${m.seconds}s · ${t('calls')}: ${Object.values(m.calls).reduce((a, b) => a + b, 0)}`));
+    const k = el('div', 'kpis');
+    const sum = (o) => Object.values(o ?? {}).reduce((a, b) => a + b, 0);
+    k.append(kpi(t('orders'), c.orders), kpi(t('unitsOrdered'), c.orderUnits), kpi(t('unitsShipped'), c.shipped), kpi(t('open'), m.result?.openUnits), kpi(t('lateShip'), c.lateShipUnits),
+      kpi(t('containers'), c.containers), kpi(t('invoices'), c.invoices), kpi(t('payments'), c.payments), kpi(t('units'), sum(c.unitsDone)), kpi(t('scans'), c.scans), kpi(t('fails'), c.repairs),
+      kpi(t('scrapped'), c.scrapped), kpi(t('po'), c.po), kpi(t('lots'), c.lots), kpi(t('lotsBad'), c.lotsRejected), kpi(t('shortages'), c.shortages));
+    s.append(k); main.append(s);
+    if (m.result?.people) {
+      s = sec(t('people')); const k2 = el('div', 'kpis');
+      k2.append(kpi(t('employees'), p.employees), kpi(t('hired'), p.hired), kpi(t('left'), p.left), kpi(t('overtime'), p.overtime), kpi(t('trainings'), p.trainings));
+      s.append(k2);
+      if (p.refusedCount) s.append(el('p', 'note', `${t('refused')}: ${p.refusedCount}`));
+      if (m.result.people.refused?.length) { const pre = el('pre'); pre.textContent = m.result.people.refused.join('\n'); s.append(pre); }
+      main.append(s);
+    }
+    const days = m.result?.daily ?? [];
+    if (days.length) {
+      s = sec(t('days'));
+      const max = Math.max(1, ...days.map((d) => d.made ?? 0));
+      const box = el('div', 'scroll'), tb = el('table'), hd = el('tr');
+      for (const h of ['day', 'orders', 'released', 'made', 'shipped', 'invoiced']) hd.append(el('th', h === 'day' ? '' : 'n', t(h)));
+      tb.append(hd);
+      for (const d of days) {
+        const r = el('tr'); r.append(el('td', '', d.day + (d.work ? '' : ' *')));
+        for (const f of ['orders', 'released', 'made', 'shipped', 'invoiced']) r.append(el('td', 'n', d[f] ?? '-'));
+        tb.append(r);
+      }
+      box.append(tb); s.append(box); main.append(s);
+    }
+    s = sec(t('honest')); s.append(el('p', 'note', t('limits'))); main.append(s);
+    s = sec(t('storyboard')); s.append(el('p', 'note', t('sbtext')));
+    if (data.arcs?.length) { const ul = el('ul'); for (const a of data.arcs) ul.append(el('li', '', a)); s.append(ul); }
+    main.append(s);
+    s = sec(t('log')); const pre = el('pre'); pre.textContent = data.log ?? ''; s.append(pre); main.append(s);
+  }
+  $('lang').onclick = () => { lang = lang === 'en' ? 'ar' : 'en'; localStorage.setItem('cc.lang', lang); render(); };
+  fetch('/api/scenario', { cache: 'no-store' }).then((r) => r.json()).then((d) => { data = d; render(); }).catch(() => { data = { built: false }; render(); });
+  render();
+</script>
+</body>
+</html>

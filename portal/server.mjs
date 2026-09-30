@@ -51,6 +51,21 @@ const server = createServer(async (req, res) => {
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(JSON.stringify(await status()));
   }
+  if (req.method === 'GET' && path === '/scenario') {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
+    return res.end(readFileSync(join(here, 'scenario.html')));
+  }
+  if (req.method === 'GET' && path === '/api/scenario') {
+    // what the last scenario build wrote (scripts/scenario.ps1): read-only, the page never starts a build
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+    const dir = join(here, '..', 'scenario', 'out', 'nile-vision');
+    try {
+      const manifest = JSON.parse(readFileSync(join(dir, 'manifest.json'), 'utf8'));
+      const log = readFileSync(join(dir, 'build.log'), 'utf8').split('\n').slice(-120).join('\n');
+      const arcs = readFileSync(join(here, '..', 'scenario', 'STORYBOARD.md'), 'utf8').split('\n').filter((l) => /^## \d+\. Arc /.test(l)).map((l) => l.replace(/^## \d+\. /, ''));
+      return res.end(JSON.stringify({ built: true, manifest, log, arcs }));
+    } catch { return res.end(JSON.stringify({ built: false })); }
+  }
   if (req.method === 'GET' && path === '/pair') {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(pairPage);

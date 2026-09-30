@@ -11,11 +11,12 @@ export const FLOWS = {
   gmesToHr: ['mes.crew_requirement.v1'],
 };
 
-export function session(base, cookieName) {
+/** A signed-in caller. `timeoutMs` is how long one call may take (a backup of a large database is checked by a rehearsal: minutes, not seconds). */
+export function session(base, cookieName, timeoutMs = 20_000) {
   let cookie = '';
   const call = async (method, path, body) => {
     const r = await fetch(base + path, {
-      method, signal: AbortSignal.timeout(20_000),
+      method, signal: AbortSignal.timeout(timeoutMs),
       headers: { 'content-type': 'application/json', origin: base, ...(cookie ? { cookie } : {}) },
       body: body === undefined ? (method === 'GET' ? undefined : '{}') : JSON.stringify(body),
     });
