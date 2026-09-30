@@ -188,3 +188,31 @@ the agent worked; the editor frames it and adds motion design around it, never r
 First film: the journal scene, 65 s, 1920×1080, 30 fps, sound at -23 dB mean. Every figure on screen comes from the run
 (entry number, times, fields typed). Design review was done on stills before the render: right-to-left order of cards
 and chains, one digit style for counters, the stamp's wording, the scene number.
+
+## 10. Film 2: from the tile line to the container (2026-09-30)
+
+`agent/studio/shoot-floor-to-container.mjs` starts its own GMES and Space Planner, sets up the tile line
+(`sets/gmes-tile-line.mjs`), films two takes, and `render.mjs --cut cuts/floor-to-container.json` makes the film
+(118 s, 1920×1080, 30 fps, -23 dB mean). The general editor `composer-scenes.html` takes any cut: scenes between the
+agent's own marks, steps, badges (tones), stamps, figures, ending, and gives the sound its moments (`cues()`). A cut
+lists `checks` against each take's result: the renderer refuses a film whose figures the run did not produce.
+
+| Scene | What the agent does, in the real screens | Proven through the API |
+|---|---|---|
+| 02 Production | GMES in Arabic; operator station at the kiln: stop "kiln temperature", resume; sorting station: Good ×N 650 + 650 m² in lot S07-C2 | stoppage opened and closed; work order 1,300 good |
+| 03 Quality | scrap by reason with a quantity: kiln crack 40, lamination 20, downgraded 80; scrap report; daily report (OEE 74.9 %) | work order 1,300 + 140 = 1,440, completed |
+| 04 Container | Space Planner shipment: 23 pallets 1,100 × 1,100 × 1,000 mm, 1,305 kg each, 40′ HC → 2 containers; 3D stuffing | 20 pallets (26.1 t) + 3 (3,915 kg), both balanced |
+
+The scenes found **five real product gaps**, all fixed in their own repositories with tests and planted bugs:
+
+| Repository | Gap | Fix |
+|---|---|---|
+| GMES | Operator station went unit by unit for a lot item on a routing | serial mode only for serialised items (the server's rule) |
+| GMES | "Good ×N" could not take the lot; scrap one piece per press; no ceramic reasons | lot prompt, scrap quantity, ceramic reasons (area `CER`) |
+| GMES | Daily report showed the raw key `st.completed` | the name in both languages; test over the server's status list |
+| Space Planner | Shipments ignored the payload (23 pallets = 30 t in one 40′ HC) | payload caps every container; kg per piece in the dialog |
+| Space Planner | Weight-limited loads piled at the front wall (centre of mass 27 % off, rule 10 %) | spread in the fewest layers, centred; both containers pass balance |
+
+Still open, for the product plan (not needed for the film): GMES holds work on units only (a shade lot of tiles cannot
+be held: `hold.nothing`); second grade is a scrap reason, not a co-product in stock; Space Planner's shipment page
+still says "loaded wall by wall from the front wall to the doors" for spread loads.
