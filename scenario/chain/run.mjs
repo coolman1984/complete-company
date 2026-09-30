@@ -7,6 +7,7 @@
 // Usage: node run.mjs   (reads CHAIN_INPUT: { urls: {mizan, gmes, hr?}, logins: {mizan, gmes, hr?} })
 import { pair } from '../../portal/pair.mjs';
 import { verify, printReport } from '../verify/verify.mjs';
+import { backupAll } from '../../portal/backup.mjs';
 
 const input = JSON.parse(process.env.CHAIN_INPUT);
 const { urls, logins } = input;
@@ -216,6 +217,9 @@ try {
   const report = await verify({ mizan, gmes, hr, day: day() });
   printReport(report);
   if (!report.ok) failed += report.checks.filter((c) => !c.ok).length;
+  // ---------------------------------------------------------------- operations: every application backs itself up and proves the copy
+  const backups = await backupAll({ urls, logins });
+  for (const b of backups.results) log(b.ok, `${b.name} backup`, b.ok ? b.backup : b.detail);
   console.log(failed ? `CHAIN: ${failed} check(s) failed` : 'CHAIN: PASSED');
 } catch (e) {
   console.error('CHAIN: STOPPED —', e.message);

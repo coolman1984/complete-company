@@ -35,10 +35,17 @@ export async function verify({ mizan, gmes, hr, day }) {
       add('Integration', `nothing is parked in ${name}'s outbox`, parked.length === 0, JSON.stringify(parked.map((p) => [p.type, p.consumer, p.code, p.message]).slice(0, 5)));
     });
   }
-  await safe('Integration', "GMES's outbox is drained", async () => {
-    const pending = await gmes('GET', '/api/integration/events?status=pending');
-    add('Integration', "GMES's outbox is drained", pending.length === 0, `${pending.length} events not yet acknowledged: ${JSON.stringify(pending.slice(0, 3).map((p) => [p.type, p.subject]))}`);
-  });
+  // drained = every active peer's cursor has reached the newest event of the outbox (a peer answers per event; the cursor moves past all answered ones)
+  for (const [name, call] of [['GMES', gmes], ['Mizan', mizan]]) {
+    await safe('Integration', `${name}'s outbox is drained`, async () => {
+      const events = await call('GET', '/api/integration/events');
+      const newest = events.reduce((m, e) => Math.max(m, e.seq ?? 0), 0);
+      const peers = (await call('GET', '/api/eco/peers')).filter((p) => p.active);
+      const behind = peers.filter((p) => p.cursor < newest);
+      add('Integration', `${name}'s outbox is drained`, peers.length > 0 && behind.length === 0,
+        peers.length === 0 ? 'no peer is configured' : behind.map((p) => `${p.name} is at ${p.cursor} of ${newest}${p.last_error ? ` (${p.last_error})` : ''}`).join('; '));
+    });
+  }
 
   // ---- quantities and work in progress
   await safe('Quantities', 'GMES completed = Mizan received, per work order', async () => {

@@ -72,3 +72,15 @@ names exists in the sibling folders, and that the portal answers.
 | `portal/server.mjs` | The portal (Node, no dependencies, 127.0.0.1 only) |
 | `portal/index.html` | The portal page |
 | `ECOSYSTEM_INTEGRATION_REVIEW.md` | The review of the four applications and the phased integration plan |
+
+## What is proven, and what is not (2026-09-30)
+
+| Part of the master plan (`plan/`) | State |
+|---|---|
+| The chain Mizan ⇄ GMES ⇄ HR: S&OP and sales order → planning → purchase → receiving and inspection → serial production → packing and dispatch → WIP value, delivery, invoice, payment → staffing gap | Built; `pwsh -File scripts\Test-Pairing.ps1 -Chain` prints `CHAIN SCENARIO: PASSED` (about one minute, a fresh stack) |
+| Cross-system verifier (`scenario/verify/verify.mjs`): company id, nothing parked, outboxes drained, quantities (GMES completed = Mizan received), work in progress, trial balance, crew in HR | First slice built; runs at the end of the chain; `scripts\test.ps1` proves it fails when the applications disagree |
+| Operations: each application makes and rehearses its own backup; the portal page has **Back up everything** | Built; the chain ends with it |
+| Pairing wizard and portal | Built (`/pair`) |
+| HR payroll calculation (WP-H6) | Not built: its gate is the owner's decision (`hr-system/docs/HR_PAYROLL_DESIGN.md` §2) |
+| The 90-day Nile Vision scenario engine (WP-P3) and the rest of the verifier (WP-P4: people, OTD/OTIF, KPI tolerances), portal Scenario tab (WP-P5) | Not built. Needs: HR to accept a simulated day (WP-H7), the book assembled from `scenario/gen/*.mjs` (master, demand and people data exist; the transactions do not), and GMES and Mizan hosted in one process on one simulated clock (Mizan's clock is injectable since `e7f4b53`, GMES's since the start) |
+| Pinned TLS and signed requests between the applications (WP-X2) | Not built, **owner's decision needed**: Node and Python cannot make a certificate with their standard libraries, so either an `openssl` dependency or a small certificate tool is required (plan rule: no new dependency without written approval). Keys are already sealed at rest in all four applications (WP-X1) |

@@ -11,7 +11,7 @@ export const FLOWS = {
   gmesToHr: ['mes.crew_requirement.v1'],
 };
 
-function session(base, cookieName) {
+export function session(base, cookieName) {
   let cookie = '';
   const call = async (method, path, body) => {
     const r = await fetch(base + path, {

@@ -50,7 +50,7 @@
       <b>GMES</b><input name="gmesUser" data-p="user" autocomplete="off" required><input name="gmesPassword" type="password" data-p="password" required>
       <b data-t="hr">HR-System</b><input name="hrUser" data-p="userOptional" autocomplete="off"><input name="hrPassword" type="password" data-p="password">
     </div>
-    <p><button class="primary" id="go" data-t="connect">Connect</button></p>
+    <p><button class="primary" id="go" data-t="connect">Connect</button> <button type="button" id="backup" data-t="backup">Back up everything</button></p>
   </form>
   <div class="card" id="out" hidden>
     <div class="result" id="result"></div>
@@ -59,8 +59,8 @@
 </main>
 <script>
 const T = {
-  en: { title: "Connect the applications", back: "Back to the portal", how: "What this does", howText: "Each application makes a key for the other, and each is told where to send what it owns. Passwords are used for this one connection and are never saved. Run it again at any time: it replaces the old connection.", admins: "Administrator of each application", hr: "HR-System", connect: "Connect", user: "User name", userOptional: "User name (leave empty to skip HR)", password: "Password", working: "Connecting…", ok: "Connected. The applications now exchange their data by themselves.", bad: "Not connected. The step in red says what to fix." },
-  ar: { title: "ربط البرامج ببعضها", back: "رجوع للصفحة الرئيسية", how: "ماذا تفعل هذه الصفحة", howText: "كل برنامج يعمل مفتاحاً للبرنامج الآخر، ويعرف إلى أين يرسل ما يملكه. كلمات المرور تُستخدم لهذا الربط فقط ولا تُحفظ. يمكن تشغيلها مرة أخرى في أي وقت فتستبدل الربط القديم.", admins: "مدير كل برنامج", hr: "الموارد البشرية", connect: "اربط", user: "اسم المستخدم", userOptional: "اسم المستخدم (اتركه فارغاً لتخطي الموارد البشرية)", password: "كلمة المرور", working: "جارٍ الربط…", ok: "تم الربط. البرامج تتبادل بياناتها الآن وحدها.", bad: "لم يتم الربط. الخطوة باللون الأحمر تقول ما يجب إصلاحه." },
+  en: { title: "Connect the applications", back: "Back to the portal", how: "What this does", howText: "Each application makes a key for the other, and each is told where to send what it owns. Passwords are used for this one connection and are never saved. Run it again at any time: it replaces the old connection.", admins: "Administrator of each application", hr: "HR-System", connect: "Connect", backup: "Back up everything", backupWorking: "Backing up…", backupOk: "Every application made a backup and opened it again to check it.", backupBad: "At least one backup is not good. The step in red says which.", user: "User name", userOptional: "User name (leave empty to skip HR)", password: "Password", working: "Connecting…", ok: "Connected. The applications now exchange their data by themselves.", bad: "Not connected. The step in red says what to fix." },
+  ar: { title: "ربط البرامج ببعضها", back: "رجوع للصفحة الرئيسية", how: "ماذا تفعل هذه الصفحة", howText: "كل برنامج يعمل مفتاحاً للبرنامج الآخر، ويعرف إلى أين يرسل ما يملكه. كلمات المرور تُستخدم لهذا الربط فقط ولا تُحفظ. يمكن تشغيلها مرة أخرى في أي وقت فتستبدل الربط القديم.", admins: "مدير كل برنامج", hr: "الموارد البشرية", connect: "اربط", backup: "نسخة احتياطية للكل", backupWorking: "جارٍ النسخ…", backupOk: "كل برنامج عمل نسخة احتياطية وفتحها من جديد للتأكد منها.", backupBad: "نسخة واحدة على الأقل ليست سليمة. الخطوة باللون الأحمر تقول أيها.", user: "اسم المستخدم", userOptional: "اسم المستخدم (اتركه فارغاً لتخطي الموارد البشرية)", password: "كلمة المرور", working: "جارٍ الربط…", ok: "تم الربط. البرامج تتبادل بياناتها الآن وحدها.", bad: "لم يتم الربط. الخطوة باللون الأحمر تقول ما يجب إصلاحه." },
 };
 let lang = localStorage.getItem("cc.lang") || "en";
 function apply() {
@@ -88,6 +88,19 @@ document.getElementById("form").onsubmit = async (ev) => {
   } catch (e) { res.className = "result bad"; res.textContent = String(e); }
   go.disabled = false;
   ev.target.querySelectorAll("input[type=password]").forEach((i) => (i.value = ""));
+};
+document.getElementById("backup").onclick = async () => {
+  const f = new FormData(document.getElementById("form")), out = document.getElementById("out"), res = document.getElementById("result"), list = document.getElementById("steps"), b = document.getElementById("backup");
+  b.disabled = true; out.hidden = false; res.className = "result"; res.textContent = T[lang].backupWorking; list.innerHTML = "";
+  const logins = { mizan: { user: f.get("mizanUser"), password: f.get("mizanPassword") }, gmes: { user: f.get("gmesUser"), password: f.get("gmesPassword") } };
+  if (f.get("hrUser")) logins.hr = { user: f.get("hrUser"), password: f.get("hrPassword") };
+  try {
+    const r = await (await fetch("/api/backup-all", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ logins }) })).json();
+    res.className = "result " + (r.ok ? "ok" : "bad"); res.textContent = T[lang][r.ok ? "backupOk" : "backupBad"];
+    for (const s of r.results) { const li = document.createElement("li"); li.className = s.ok ? "ok" : "bad"; li.textContent = s.name + (s.backup ? " · " + s.backup : "") + " — " + s.detail; list.appendChild(li); }
+  } catch (e) { res.className = "result bad"; res.textContent = String(e); }
+  b.disabled = false;
+  document.getElementById("form").querySelectorAll("input[type=password]").forEach((i) => (i.value = ""));
 };
 </script>
 </body>

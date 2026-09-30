@@ -7,6 +7,7 @@ import { createServer } from 'node:http';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pair } from './pair.mjs';
+import { backupAll } from './backup.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const arg = (name, fallback) => { const i = process.argv.indexOf(name); return i > 0 ? process.argv[i + 1] : fallback; };
@@ -63,6 +64,17 @@ const server = createServer(async (req, res) => {
     let body;
     try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end('json'); }
     const out = await pair({ urls: { mizan: urlOf('mizan'), gmes: urlOf('gmes'), hr: body.logins?.hr?.user ? urlOf('hr') : null }, logins: body.logins ?? {} });
+    res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
+    return res.end(JSON.stringify(out));
+  }
+  if (req.method === 'POST' && path === '/api/backup-all') {
+    const origin = req.headers.origin;
+    if (origin && origin !== `http://127.0.0.1:${port}` && origin !== `http://localhost:${port}`) { res.writeHead(403); return res.end('origin refused'); }
+    let raw = '';
+    for await (const chunk of req) { raw += chunk; if (raw.length > 10_000) { res.writeHead(413); return res.end(); } }
+    let body;
+    try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end('json'); }
+    const out = await backupAll({ urls: { mizan: urlOf('mizan'), gmes: urlOf('gmes'), hr: urlOf('hr') }, logins: body.logins ?? {} });
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(JSON.stringify(out));
   }
