@@ -363,7 +363,7 @@ Drivers:
 
 | Topic | Reference | Source |
 |---|---|---|
-| Egypt TV channels | Appliance & electronics specialists lead: **B.TECH** (omnichannel + consumer finance), **2B**, **Raya Shop**, Carrefour (MAF), Spinneys, Hyper One, e-commerce (Amazon.eg, Noon, Jumia), plus brand e-stores. Samsung leads TVs in 2025. | [S30] |
+| Egypt TV channels | Appliance & electronics specialists lead: **B.TECH** (omnichannel + consumer finance), **2B**, **Raya Shop**, Carrefour (MAF), Spinneys, Hyper One, e-commerce (Amazon.eg, Noon, Jumia), plus brand e-stores. International brands lead TVs in 2025. | [S30] |
 | Market reference | The market leader held 37% of Egypt's TV market in 2016; the market was about 500k units in 2015 and has grown since. The largest local TV plant: about 6 M units/yr capacity, mostly exported (published figure). | [S31][S32] |
 | Consumer finance | Installments via valU, Contact, bank cards (in a leading brand's T&Cs) | [S12] |
 | Retail credit terms | Key accounts 45-90 days (open account, credit-insured or bank guarantee); traditional dealers 30-60 days or post-dated cheques; e-commerce 30 days | [E] |
