@@ -37,6 +37,10 @@ foreach ($d in @(@{ bat = 'Start-Integrated-Demo.bat'; chain = 'scenario\chain\r
   Check ($LASTEXITCODE -eq 0) "$($d.chain) is valid JavaScript"
 }
 Check ((Get-Content -LiteralPath (Join-Path $script:PackageRoot 'Start-Ceramic-Demo.bat') -Raw) -match '-Scenario ceramic') 'the ceramic launcher asks for the ceramic scenario'
+foreach ($f in @('agent\cdp.mjs', 'agent\stage.mjs', 'agent\skills\mizan.mjs', 'agent\try-journal.mjs')) {
+  & (Get-Command node).Source --check (Join-Path $script:PackageRoot $f) 2>$null
+  Check ($LASTEXITCODE -eq 0) "$f is valid JavaScript"
+}
 
 Write-Host '== portal'
 $port = 45990

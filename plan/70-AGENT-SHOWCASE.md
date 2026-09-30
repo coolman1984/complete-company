@@ -112,3 +112,63 @@ The surprise is in the MVP: it is the strongest moment (the agent shows judgemen
 
 1. **Model access for the demo:** Claude Code signed in on the laptop, or an API key (cleanest cost figure per run).
 2. **Surprise scene:** a rejected batch (default) or a customer who moves the date earlier.
+
+## 8. Driving the real screens (owner's decision, 2026-09-30)
+
+**Every scene happens in the applications' own screens, live:** the audience sees the agent's cursor glide to each
+field, a ring around the control it works on, the words typed one character at a time, the entry posted, the report
+refreshed, and a caption saying what it does and why. It is not a video: anyone can click in the same window, and a
+board member can dictate a number that the agent then types.
+
+```
+ model (decides what to do next) ──► skills (one per screen task: signIn, openScreen, recordJournal, …)
+                                         │ each step on the stage, each result proven through the app's API
+                                         ▼
+                                     stage (agent/stage.mjs: cursor, ring, ripple, caption, typing, read-back)
+                                         ▼
+                                     cdp (agent/cdp.mjs: Chrome/Edge over DevTools, zero dependency, own profile)
+```
+
+- The model never hunts for pixels: it calls skills. Its freedom is in the decisions, not in where to click. That keeps
+  a live run fast and predictable.
+- **Rules carried over from driving G-MES at night** (lessons only, no code): wait for the very control you will use;
+  visible controls only, smallest box wins; every click that must change the screen proves it did (`expect`), retrying
+  once; every typed field is read back and retyped slower on a mismatch; a failure saves a screenshot; own browser
+  profile, never the user's; 127.0.0.1, never "localhost"; the browser is told to call nobody (works unplugged).
+- **Replay becomes live too:** the decisions of a real model run are recorded; on stage the skills execute them in the
+  real screens now. No internet needed, nothing pre-filmed.
+- **Two speeds:** presentation pace (the audience can follow) and full speed (the same work when nobody watches).
+
+### 8.1 Proven so far
+
+| Skill | Result | Proof |
+|---|---|---|
+| Mizan `signIn`, `openScreen`, `recordJournal` (kiln electricity 185,000 EGP: Dr 5230 utilities / Cr 2130 accrued), then the income statement | **Posted JE-000001 at presentation pace in 31 s, at full speed in 6.4 s (4 runs of 4, no retry)** | read back through `GET /api/journal/:id`: new, posted, debit = credit; filmed from the browser (webm) |
+
+Four real defects were caught by running at full speed, and are now rules in `stage.mjs` / `skills/mizan.mjs`:
+1. "غير متوازن" (not balanced) contains "متوازن" (balanced): a text check passed before the entry balanced. The skill now
+   waits for the warning to disappear **and** the post button to be enabled.
+2. An amount field that reformats as you type dropped characters when typing outran it (185000 became 000). Every
+   field is now read back; a mismatch is retyped slower; a field that still disagrees stops the run.
+3. The same field swallowed the first key typed right after focusing it (185000 became 85000): a short pause after
+   clearing a field, and the read-back above catches it if it ever happens again.
+4. A list screen still loading replaced its "new" button just after the agent found it, so the click was lost. A control
+   is now used only when the same element is still in place a moment later.
+
+### 8.2 Screens each scene needs (checked on GitHub `main`)
+
+| Scene | Screen | State |
+|---|---|---|
+| Expenses, journals, statements, tax summary | Mizan journal, income statement, balance sheet, cash flow, tax | ✅ screens exist |
+| Invoice, payment | Mizan sales invoices, receipts | ✅ screens exist (skill to write) |
+| Sales order, S&OP, requisitions → PO | Mizan server has them; **no web screens on GitHub** (maybe on the owner's PC) | 🔨 or 🟡 — check after the push |
+| Production, scrap, stoppages, quality, boards | GMES EXE, RPT4020, OEE2010, QMS, DSH5010 | ✅ screens exist (skills to write) |
+| MRP / planning | GMES planning screens | 🟡 owner's PC |
+| Shifts, schedule, staffing | HR screens | ✅ / 🟡 |
+| Container 3D | Space Planner shipment page with load playback | ✅ |
+
+### 8.3 On the projector
+
+One large window shows the application the agent is working in (it brings that window to the front as it moves from
+Mizan to GMES to HR to Space Planner); a narrow side window is the cockpit: the scene timeline, approval buttons and the
+scoreboard. Optional 2×2 view: the four applications at once, each refreshing as the agent's work lands.
