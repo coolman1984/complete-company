@@ -50,6 +50,8 @@ try {
 Write-Host '== verifier (fake applications, no network)'
 $vt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'scenario\verify\verify.test.mjs') 2>&1
 Check ($LASTEXITCODE -eq 0) 'the verifier fails when the applications disagree and passes when they agree'
+$bt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'portal\backup.test.mjs') 2>&1
+Check ($LASTEXITCODE -eq 0) 'back up everything counts only a rehearsed backup and names the application that failed'
 
 Write-Host ''
 if ($failures.Count) { Write-Host "$($failures.Count) FAILED" -ForegroundColor Red; exit 1 }
