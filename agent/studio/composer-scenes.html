@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="ar">
+<head>
+<meta charset="utf-8">
+<title>Agent film composer (scenes)</title>
+<!--
+  The general film editor: a film is a list of scenes (a card, then the real footage of a take between two of the
+  agent's own marks), framed by an intro, figures and an ending. As in composer.html everything on screen is a pure
+  function of time (renderAt(t)), and the footage is never redrawn, only framed. The cut (which takes, which scenes,
+  captions, steps, stamps) is data: cuts/*.json. cues() gives the sound its moments from the same timeline.
+-->
+<style>
+  @font-face { font-family: Plex; font-weight: 400; src: url(/fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 600; src: url(/fonts/ibm-plex-sans-arabic-arabic-600-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 700; src: url(/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2) format('woff2'); unicode-range: U+0600-06FF, U+0750-077F, U+FB50-FDFF, U+FE70-FEFF, U+200C-200E, U+0660-0669; }
+  @font-face { font-family: Plex; font-weight: 400; src: url(/fonts/ibm-plex-sans-arabic-latin-400-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Plex; font-weight: 600; src: url(/fonts/ibm-plex-sans-arabic-latin-600-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  @font-face { font-family: Plex; font-weight: 700; src: url(/fonts/ibm-plex-sans-arabic-latin-700-normal.woff2) format('woff2'); unicode-range: U+0000-00FF, U+2000-206F; }
+  :root { --ink: #F4EFE8; --soft: #B9B0A4; --dim: #7E766C; --bg: #111719; --clay: #D8733F; --clay2: #F0A06F; --teal: #3B8FB0; --ok: #57C28E; }
+  html, body { margin: 0; background: #000; }
+  #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); font-family: Plex, Tahoma, sans-serif; color: var(--ink); }
+  .layer { position: absolute; inset: 0; }
+  .rtl { direction: rtl; }
+  #bg { background: radial-gradient(900px 700px at var(--g1x) var(--g1y), rgba(216,115,63,.22), transparent 70%), radial-gradient(1000px 800px at var(--g2x) var(--g2y), rgba(59,143,176,.18), transparent 70%), #111719; }
+  #grid { background-image: radial-gradient(rgba(244,239,232,.09) 1.2px, transparent 1.3px); background-size: 36px 36px; }
+  /* intro */
+  #intro { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; text-align: center; }
+  #intro .kicker { font-size: 30px; font-weight: 600; color: var(--clay2); letter-spacing: 0; }
+  #intro h1 { margin: 0; font-size: 168px; font-weight: 700; line-height: 1.05; }
+  #intro .rule { height: 6px; width: 640px; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--clay), transparent); }
+  #intro .sub { font-size: 40px; color: var(--soft); }
+  #intro .live { font-size: 26px; color: var(--ok); font-weight: 600; }
+  /* scene card */
+  #card { display: flex; flex-direction: column; justify-content: center; padding: 0 200px; gap: 18px; }
+  #card .num { font-size: 300px; font-weight: 700; line-height: .9; color: transparent; -webkit-text-stroke: 3px rgba(216,115,63,.9); }
+  #card h2 { margin: 0; font-size: 92px; font-weight: 700; line-height: 1.15; }
+  #card .tags { display: flex; gap: 16px; }
+  #card .tag { font-size: 30px; padding: 10px 24px; border-radius: 40px; background: rgba(244,239,232,.08); border: 1px solid rgba(244,239,232,.16); color: var(--soft); }
+  /* the application window */
+  .win { position: absolute; border-radius: 20px; overflow: hidden; background: #fff; box-shadow: 0 40px 120px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.08); transform-origin: 50% 50%; }
+  .win .bar { position: absolute; left: 0; right: 0; top: 0; height: 46px; background: #1B2326; display: flex; align-items: center; padding: 0 20px; gap: 10px; z-index: 2; }
+  .win .dot { width: 14px; height: 14px; border-radius: 7px; }
+  .win .title { flex: 1; text-align: center; font-size: 20px; color: var(--soft); direction: rtl; }
+  .win .livebadge { font-size: 17px; font-weight: 600; color: #fff; background: rgba(87,194,142,.18); border: 1px solid rgba(87,194,142,.5); padding: 4px 12px; border-radius: 20px; direction: rtl; }
+  .win .livebadge i { display: inline-block; width: 9px; height: 9px; border-radius: 5px; background: var(--ok); margin-inline-end: 8px; vertical-align: 1px; }
+  .win .view { position: absolute; left: 0; right: 0; bottom: 0; top: 46px; overflow: hidden; background: #fff; }
+  .win .view img { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+  /* side panel */
+  #panel { position: absolute; top: 60px; width: 330px; right: 44px; bottom: 70px; display: flex; flex-direction: column; gap: 26px; direction: rtl; }
+  #panel .brand { font-size: 24px; font-weight: 700; color: var(--clay2); display: flex; align-items: center; gap: 12px; }
+  #panel .brand b { width: 14px; height: 14px; border-radius: 7px; background: var(--clay); box-shadow: 0 0 0 6px rgba(216,115,63,.2); }
+  #panel .clock { background: rgba(244,239,232,.06); border: 1px solid rgba(244,239,232,.12); border-radius: 18px; padding: 20px 24px; }
+  #panel .clock .l { font-size: 20px; color: var(--soft); }
+  #panel .clock .v { font-size: 64px; font-weight: 700; direction: ltr; text-align: right; font-variant-numeric: tabular-nums; }
+  #panel .steps { display: flex; flex-direction: column; gap: 14px; }
+  #panel .step { display: flex; align-items: center; gap: 14px; font-size: 23px; color: var(--dim); }
+  #panel .step .m { width: 30px; height: 30px; border-radius: 15px; border: 2px solid rgba(244,239,232,.22); flex: none; display: grid; place-items: center; font-size: 18px; color: #111; }
+  #panel .step.active { color: var(--ink); }
+  #panel .step.active .m { border-color: var(--clay); box-shadow: 0 0 0 5px rgba(216,115,63,.18); }
+  #panel .step.done { color: var(--soft); }
+  #panel .step.done .m { background: var(--ok); border-color: var(--ok); }
+  #panel .scene { margin-top: auto; font-size: 20px; color: var(--dim); }
+  /* lower third */
+  .lt { position: absolute; direction: rtl; display: flex; align-items: stretch; max-width: 1180px; background: rgba(17,23,25,.92); border-radius: 16px; box-shadow: 0 18px 50px rgba(0,0,0,.4); overflow: hidden; }
+  .lt .who { background: var(--clay); color: #fff; font-size: 22px; font-weight: 700; padding: 18px 20px; display: flex; align-items: center; }
+  .lt .txt { font-size: 32px; line-height: 1.45; padding: 16px 26px; }
+  /* callouts */
+  .badge { position: absolute; direction: rtl; font-size: 30px; font-weight: 700; padding: 14px 26px; border-radius: 40px; background: var(--ok); color: #0E2A1D; box-shadow: 0 14px 40px rgba(87,194,142,.35); }
+  .stamp { position: absolute; direction: rtl; width: 860px; padding: 36px 40px; border-radius: 28px; background: rgba(17,23,25,.95); border: 2px solid var(--ok); box-shadow: 0 30px 90px rgba(0,0,0,.5); display: flex; gap: 28px; align-items: center; }
+  .stamp .ring { width: 110px; height: 110px; border-radius: 55px; background: var(--ok); flex: none; display: grid; place-items: center; }
+  .stamp h3 { margin: 0 0 6px; font-size: 40px; }
+  .stamp p { margin: 0; font-size: 26px; color: var(--soft); line-height: 1.5; }
+  /* speed + stats + outro */
+  .bigtitle { position: absolute; left: 0; right: 0; text-align: center; font-size: 84px; font-weight: 700; direction: rtl; }
+  .subtitle { position: absolute; left: 0; right: 0; text-align: center; font-size: 36px; color: var(--soft); direction: rtl; }
+  .watch { position: absolute; direction: rtl; text-align: center; }
+  .watch .v { font-size: 150px; font-weight: 700; direction: ltr; font-variant-numeric: tabular-nums; color: var(--clay2); line-height: 1; }
+  .watch .l { font-size: 28px; color: var(--soft); }
+  .tiles { position: absolute; left: 150px; right: 150px; top: 370px; display: flex; flex-direction: row; gap: 36px; direction: rtl; }
+  .tile { flex: 1; padding: 44px 40px; border-radius: 26px; background: rgba(244,239,232,.06); border: 1px solid rgba(244,239,232,.13); }
+  .tile .v { font-size: 110px; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; direction: ltr; text-align: right; }
+  .tile .l { margin-top: 18px; font-size: 30px; color: var(--soft); line-height: 1.45; }
+  .chain { position: absolute; left: 60px; right: 60px; top: 490px; display: flex; flex-direction: row; justify-content: center; gap: 12px; direction: rtl; }
+  .chain .c { font-size: 27px; font-weight: 600; padding: 16px 20px; white-space: nowrap; border-radius: 18px; background: rgba(244,239,232,.07); border: 1px solid rgba(244,239,232,.14); }
+  .chain .c.hl { background: var(--clay); border-color: var(--clay); color: #fff; }
+  .chain .arr { font-size: 28px; color: var(--dim); align-self: center; }
+  #vignette { background: radial-gradient(1400px 900px at 50% 50%, transparent 60%, rgba(0,0,0,.45)); pointer-events: none; }
+  #fade { background: #000; pointer-events: none; }
+
+  #ctitle { white-space: pre-line; }
+  .badge-warn { background: #F2B544; color: #3A2600; box-shadow: 0 14px 40px rgba(242,181,68,.35); }
+  .badge-info { background: #7CC4E0; color: #0B2A36; box-shadow: 0 14px 40px rgba(124,196,224,.35); }
+  .stamp .ring svg path { stroke-dasharray: 30; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <div id="bg" class="layer"></div>
+  <div id="grid" class="layer"></div>
+
+  <div id="intro" class="layer rtl">
+    <div class="kicker" id="kicker"></div>
+    <h1 id="ititle"></h1>
+    <div class="rule"></div>
+    <div class="sub" id="isub"></div>
+    <div class="live">● تشغيل حقيقي مسجّل من الشاشة، مش رسوم متحركة</div>
+  </div>
+
+  <div id="card" class="layer rtl">
+    <div class="num" id="cnum"></div>
+    <h2 id="ctitle"></h2>
+    <div class="tags" id="ctags"></div>
+  </div>
+
+  <div id="main" class="layer">
+    <div id="win" class="win" style="left:44px;top:60px;width:1456px;height:956px">
+      <div class="bar"><span class="dot" style="background:#FF5F57"></span><span class="dot" style="background:#FEBC2E"></span><span class="dot" style="background:#28C840"></span>
+        <span class="title" id="wtitle"></span><span class="livebadge"><i></i>تشغيل حقيقي</span></div>
+      <div class="view"><img id="shot" width="1456" height="910" alt=""></div>
+    </div>
+    <div id="panel">
+      <div class="brand"><b></b>الوكيل الذكي شغال</div>
+      <div class="clock"><div class="l">زمن التشغيل الحقيقي</div><div class="v" id="clock">00:00.0</div></div>
+      <div class="steps" id="steps"></div>
+      <div class="scene" id="scenelabel"></div>
+    </div>
+    <div id="lt" class="lt" style="left:94px;top:880px"><div class="who">الوكيل</div><div class="txt" id="lttxt"></div></div>
+    <div id="badge" class="badge" style="left:90px;top:130px"></div>
+    <div id="stamp" class="stamp" style="left:302px;top:360px">
+      <div class="ring"><svg width="64" height="64" viewBox="0 0 24 24"><path id="tick" d="M4 12.5l5 5L20 6.5" fill="none" stroke="#0E2A1D" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="30" stroke-dashoffset="30"/></svg></div>
+      <div><h3 id="stamph"></h3><p id="stamptxt"></p></div>
+    </div>
+  </div>
+
+  <div id="stats" class="layer">
+    <div class="bigtitle" style="top:170px" id="stitle"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="subtitle" id="statsline" style="top:780px;font-size:34px"></div>
+  </div>
+
+  <div id="outro" class="layer">
+    <div class="bigtitle" style="top:250px" id="otitle"></div>
+    <div class="subtitle" style="top:370px" id="osub"></div>
+    <div class="chain" id="chain"></div>
+    <div class="subtitle" id="sign" style="top:820px;font-size:30px;color:var(--dim)">الوكيل الذكي · Complete Company</div>
+  </div>
+
+  <div id="progress" style="position:absolute;left:0;bottom:0;height:5px;width:1920px;background:linear-gradient(90deg,#D8733F,#F0A06F);transform-origin:100% 50%"></div>
+  <div id="vignette" class="layer"></div>
+  <div id="fade" class="layer"></div>
+</div>
+<script>
+// ------------------------------------------------------------------ easing and helpers (all pure)
+const clamp = (x, a = 0, b = 1) => Math.max(a, Math.min(b, x));
+const lin = (t, a, b) => clamp((t - a) / (b - a));
+const eo = (x) => 1 - Math.pow(1 - x, 3);             // ease out cubic
+const eio = (x) => (x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2);
+const back = (x) => { const c = 1.7; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+const mix = (a, b, x) => a + (b - a) * x;
+const $ = (id) => document.getElementById(id);
+const AR = (n) => String(n).replace(/\d/g, (d) => '٠١٢٣٤٥٦٧٨٩'[d]);
+const set = (el, o, tf) => { el.style.opacity = o; if (tf !== undefined) el.style.transform = tf; el.style.visibility = o <= 0.001 ? 'hidden' : 'visible'; };
+
+let CUT = null;            // set by load()
+const cache = new Map();   // image url -> decoded Image
+
+/** One camera path per take: springs follow targets set by the agent's own moves, so the camera arrives with it. */
+function cameraPath(take, vw, vh) {
+  const ev = take.events, dur = take.duration, keys = [{ t: 0, z: 1, x: vw / 2, y: vh / 2 }];
+  for (let i = 0; i < ev.length; i++) {
+    const e = ev[i];
+    if (e.type === 'point' && e.box) {
+      const z = e.box.w < 420 ? 1.8 : 1.4;
+      keys.push({ t: e.t - 250, z, x: e.box.cx, y: e.box.cy });
+    } else if (e.type === 'say' || e.type === 'balanced' || e.type === 'done') {
+      const next = ev.slice(i + 1).find((x) => x.type === 'point');
+      if (!next || next.t - e.t > 1400) keys.push({ t: e.t + 150, z: e.type === 'done' ? 1.08 : 1, x: vw / 2, y: vh / 2 });
+    } else if (e.type === 'proven') keys.push({ t: e.t, z: 1.25, x: vw / 2, y: vh * 0.34 });
+    else if (e.type === 'focus' && e.box) keys.push({ t: e.t, z: clamp(Math.min(vw / e.box.w, vh / e.box.h) * 0.94, 1, 1.8), x: e.box.cx, y: e.box.cy });
+  }
+  keys.sort((a, b) => a.t - b.t);
+  const step = 1000 / 120, out = [];
+  let s = { z: 1, x: vw / 2, y: vh / 2 }, v = { z: 0, x: 0, y: 0 }, k = 0;
+  const w = 7.5; // spring stiffness: settles in about 0.6 s, no overshoot (critically damped)
+  for (let t = 0; t <= dur + 2000; t += step) {
+    while (k + 1 < keys.length && keys[k + 1].t <= t) k++;
+    const g = keys[k], dt = step / 1000;
+    for (const c of ['z', 'x', 'y']) { const a = w * w * (g[c] - s[c]) - 2 * w * v[c]; v[c] += a * dt; s[c] += v[c] * dt; }
+    out.push({ ...s });
+  }
+  return (ms) => out[clamp(Math.round(ms / step), 0, out.length - 1)];
+}
+
+function frameAt(take, ms) {
+  const f = take.frames; let lo = 0, hi = f.length - 1;
+  if (ms <= f[0].t) return f[0];
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (f[mid].t <= ms) lo = mid; else hi = mid - 1; }
+  return f[lo];
+}
+async function showFrame(img, take, ms) {
+  const url = take.base + frameAt(take, ms).file;
+  if (img.dataset.src === url) return;
+  let im = cache.get(url);
+  if (!im) { im = new Image(); im.src = url; await im.decode(); cache.set(url, im); if (cache.size > 40) cache.delete(cache.keys().next().value); }
+  img.src = url; img.dataset.src = url;
+  await img.decode().catch(() => {});
+}
+function placeCamera(img, cam, vw, boxW, boxH) {
+  const k = boxW / vw, z = cam.z;
+  let tx = boxW / 2 - cam.x * k * z, ty = boxH / 2 - cam.y * k * z;
+  tx = clamp(tx, boxW - boxW * z, 0); ty = clamp(ty, boxH - boxH * z, 0);
+  img.style.transform = `translate(${tx}px, ${ty}px) scale(${z})`;
+}
+
+
+// ------------------------------------------------------------------ the cut: resolve marks, lay out the timeline
+/** A mark in a take: { type, n } = the n-th event of that type (0 first); "start" / "end" = the take's ends. */
+function markAt(take, m) {
+  if (m === 'start' || m == null) return 0;
+  if (m === 'end') return take.duration;
+  const e = take.events.filter((x) => x.type === m.type)[m.n ?? 0];
+  if (!e) throw new Error('no mark ' + JSON.stringify(m));
+  return e.t + (m.plus ?? 0);
+}
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+
+window.load = (cut) => {
+  CUT = cut;
+  for (const tk of Object.values(cut.takes)) tk.cam = cameraPath(tk, tk.viewport.w, tk.viewport.h);
+  $('kicker').textContent = cut.intro.kicker; $('ititle').textContent = cut.intro.title; $('isub').textContent = cut.intro.sub;
+  let t = 5.0;
+  cut.T = { introEnd: 5.2 };
+  for (const sc of cut.scenes) {
+    const tk = cut.takes[sc.take];
+    sc.from = markAt(tk, sc.start); sc.to = markAt(tk, sc.end);
+    sc.card = t; sc.cardEnd = t + 3.4; sc.main = t + 3.0; sc.mainEnd = sc.main + (sc.to - sc.from) / 1000 + 0.3;
+    sc.says = tk.events.filter((e) => e.type === 'say' && e.text && e.t >= sc.from - 50 && e.t <= sc.to);
+    sc.stepsAt = sc.steps.map((s) => ({ label: s.label, done: markAt(tk, s.done) }));
+    sc.stampsAt = (sc.stamps ?? []).map((s) => ({ ...s, at: markAt(tk, s.at) }));
+    sc.badgesAt = (sc.badges ?? []).map((s) => ({ ...s, at: markAt(tk, s.at) }));
+    t = sc.mainEnd - 0.2;
+  }
+  cut.T.stats = t; cut.T.statsEnd = t + 7.0; cut.T.outro = cut.T.statsEnd - 0.2; cut.T.end = cut.T.outro + 6.4;
+  $('stitle').textContent = cut.stats.title; $('statsline').textContent = cut.stats.line ?? '';
+  $('tiles').replaceChildren(...cut.stats.tiles.map((x, i) => { const d = el('div', 'tile'); d.id = 'tile' + i; d.append(el('div', 'v', ''), el('div', 'l', x.label)); return d; }));
+  $('otitle').textContent = cut.outro.title; $('osub').textContent = cut.outro.sub;
+  $('chain').replaceChildren(...cut.outro.chain.flatMap((c, i) => { const s = el('span', 'c' + (c.done ? ' hl' : ''), c.label); return i < cut.outro.chain.length - 1 ? [s, el('span', 'arr', '←')] : [s]; }));
+  cut.duration = cut.T.end;
+  return cut.T.end;
+};
+
+/** The sound's moments, in film seconds, from the same timeline as the picture. */
+window.cues = () => {
+  const out = { cuts: [], clicks: [], typing: [], pops: [], chimes: [] };
+  for (const sc of CUT.scenes) {
+    const tk = CUT.takes[sc.take], at = (ms) => sc.main + (ms - sc.from) / 1000;
+    out.cuts.push(sc.card - 0.25, sc.main - 0.1);
+    const inside = tk.events.filter((e) => e.t >= sc.from && e.t <= sc.to);
+    inside.forEach((e, i) => {
+      if (e.type === 'click') out.clicks.push(at(e.t));
+      if (e.type === 'type' && e.text) {
+        const next = inside.slice(i + 1).find((x) => x.t > e.t);
+        const span = Math.min(((next?.t ?? e.t + 1000) - e.t) / 1000, String(e.text).length / 14 + 0.1);
+        for (let c = 0; c < String(e.text).length; c++) out.typing.push(at(e.t) + (span * c) / String(e.text).length);
+      }
+    });
+    for (const b of sc.badgesAt) out.pops.push(at(b.at) + 0.05);
+    for (const s of sc.stampsAt) out.chimes.push(at(s.at) + 0.3);
+  }
+  out.cuts.push(CUT.T.stats - 0.25, CUT.T.outro - 0.25);
+  out.chimes.push(CUT.T.stats + 0.6);
+  return out;
+};
+
+window.renderAt = async (t) => {
+  const T = CUT.T;
+  const st = $('stage').style;
+  st.setProperty('--g1x', `${30 + 10 * Math.sin(t * .23)}%`); st.setProperty('--g1y', `${30 + 8 * Math.cos(t * .19)}%`);
+  st.setProperty('--g2x', `${72 + 9 * Math.cos(t * .17)}%`); st.setProperty('--g2y', `${70 + 7 * Math.sin(t * .21)}%`);
+  $('grid').style.transform = `translate(${(t * 6) % 36}px, ${(t * 3) % 36}px)`;
+  // ---- intro
+  {
+    const inn = eo(lin(t, .2, 1.4)), out = eio(lin(t, T.introEnd - .9, T.introEnd)), e = $('intro');
+    set(e, inn * (1 - out), `scale(${mix(1.06, 1, inn) * mix(1, .94, out)})`);
+    const h1 = $('ititle'), hx = eo(lin(t, .35, 1.6));
+    h1.style.filter = `blur(${mix(18, 0, hx)}px)`; h1.style.letterSpacing = `${mix(30, 0, hx)}px`;
+    e.querySelector('.rule').style.transform = `scaleX(${eo(lin(t, .9, 2.0))})`;
+    set($('isub'), eo(lin(t, 1.5, 2.3)), `translateY(${mix(24, 0, eo(lin(t, 1.5, 2.3)))}px)`);
+    set(e.querySelector('.live'), eo(lin(t, 2.3, 3.0))); set($('kicker'), eo(lin(t, .8, 1.6)));
+  }
+  // ---- the scene whose card or footage is on screen now
+  const sc = CUT.scenes.find((s) => t >= s.card && t < s.mainEnd + .35) ?? null;
+  set($('card'), 0); set($('main'), 0);
+  if (sc) {
+    const inn = eo(lin(t, sc.card, sc.card + .8)), out = eio(lin(t, sc.cardEnd - .8, sc.cardEnd));
+    if ($('cnum').textContent !== sc.num) { $('cnum').textContent = sc.num; $('ctitle').textContent = sc.title; $('ctags').replaceChildren(...sc.tags.map((x) => el('span', 'tag', x))); }
+    set($('card'), inn * (1 - out), `translateX(${mix(-90, 0, inn) + mix(0, 160, out)}px)`);
+    $('cnum').style.transform = `translateY(${mix(60, 0, eo(lin(t, sc.card, sc.card + 1)))}px)`;
+    $('ctags').querySelectorAll('.tag').forEach((g, i) => set(g, eo(lin(t, sc.card + .6 + i * .15, sc.card + 1.1 + i * .15))));
+    const mi = eo(lin(t, sc.main, sc.main + 1.0)), mo = eio(lin(t, sc.mainEnd - .6, sc.mainEnd + .3));
+    set($('main'), mi * (1 - mo));
+    $('win').style.transform = `perspective(2200px) rotateX(${mix(14, 0, mi)}deg) scale(${mix(.86, 1, mi) * mix(1, .92, mo)}) translateY(${mix(70, 0, mi)}px)`;
+    set($('panel'), eo(lin(t, sc.main + .5, sc.main + 1.3)), `translateX(${mix(60, 0, eo(lin(t, sc.main + .5, sc.main + 1.3)))}px)`);
+    if (t >= sc.main - .1) {
+      const tk = CUT.takes[sc.take];
+      const ms = clamp(sc.from + (t - sc.main) * 1000, sc.from, sc.to);
+      $('wtitle').textContent = sc.window; $('scenelabel').textContent = sc.label;
+      await showFrame($('shot'), tk, ms);
+      placeCamera($('shot'), tk.cam(ms), tk.viewport.w, 1456, 910);
+      const s = (ms - sc.from) / 1000; $('clock').textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${(s % 60).toFixed(1).padStart(4, '0')}`;
+      if ($('steps').dataset.scene !== sc.num) { $('steps').dataset.scene = sc.num; $('steps').replaceChildren(...sc.stepsAt.map((x, i) => { const d = el('div', 'step'); d.id = 'st' + i; d.append(el('span', 'm'), el('span', null, x.label)); return d; })); }
+      sc.stepsAt.forEach((x, i) => { const e = $('st' + i); const done = ms >= x.done; const active = !done && (i === 0 || ms >= sc.stepsAt[i - 1].done); e.className = 'step' + (done ? ' done' : active ? ' active' : ''); e.querySelector('.m').textContent = done ? '✓' : ''; });
+      const cur = [...sc.says].reverse().find((e) => e.t <= ms);
+      if (cur) {
+        const next = sc.says.find((e) => e.t > cur.t);
+        const a = eo(lin(ms, cur.t, cur.t + 350)), z = next ? eio(lin(ms, next.t - 220, next.t)) : 0;
+        $('lttxt').textContent = cur.text; set($('lt'), a * (1 - z), `translateY(${mix(30, 0, a)}px)`);
+      } else set($('lt'), 0);
+      const b = sc.badgesAt.find((x) => ms >= x.at && ms <= x.at + (x.hold ?? 2600));
+      if (b) { $('badge').textContent = b.text; $('badge').className = 'badge' + (b.tone ? ' badge-' + b.tone : ''); const bi = lin(ms, b.at, b.at + 400), bo = lin(ms, b.at + (b.hold ?? 2600) - 400, b.at + (b.hold ?? 2600)); set($('badge'), bi * (1 - bo), `scale(${mix(.6, 1, back(bi))})`); } else set($('badge'), 0);
+      const p = sc.stampsAt.find((x) => ms >= x.at && ms <= x.at + (x.hold ?? 3000));
+      if (p) {
+        $('stamph').textContent = p.title; $('stamptxt').textContent = p.text;
+        const pi = lin(ms, p.at + 150, p.at + 650), po = lin(ms, p.at + (p.hold ?? 3000) - 400, p.at + (p.hold ?? 3000));
+        set($('stamp'), pi * (1 - po), `scale(${mix(.7, 1, back(pi))})`);
+        $('tick').style.strokeDashoffset = String(30 * (1 - eo(lin(ms, p.at + 450, p.at + 950))));
+      } else set($('stamp'), 0);
+    }
+  }
+  // ---- figures
+  {
+    const inn = eo(lin(t, T.stats, T.stats + .8)), out = eio(lin(t, T.statsEnd - .6, T.statsEnd));
+    set($('stats'), inn * (1 - out));
+    CUT.stats.tiles.forEach((x, i) => {
+      const a = eo(lin(t, T.stats + .4 + i * .25, T.stats + 2.2 + i * .25)), e = $('tile' + i);
+      set(e, eo(lin(t, T.stats + .3 + i * .25, T.stats + .9 + i * .25)), `translateY(${mix(50, 0, eo(lin(t, T.stats + .3 + i * .25, T.stats + .9 + i * .25)))}px)`);
+      const v = (x.value * a).toFixed(x.decimals ?? 0);
+      e.querySelector('.v').textContent = (x.group ? Number(v).toLocaleString('en-US', { minimumFractionDigits: x.decimals ?? 0 }) : v) + (x.suffix ?? '');
+    });
+    set($('statsline'), eo(lin(t, T.stats + 1.8, T.stats + 2.6)) * (1 - out));
+  }
+  // ---- ending
+  {
+    const inn = eo(lin(t, T.outro, T.outro + .9)), out = eio(lin(t, T.end - .9, T.end));
+    set($('outro'), inn * (1 - out));
+    document.querySelectorAll('#chain .c').forEach((c, i) => { const a = eo(lin(t, T.outro + .5 + i * .22, T.outro + 1.0 + i * .22)); set(c, a, `translateY(${mix(30, 0, a)}px)`); });
+    document.querySelectorAll('#chain .arr').forEach((c, i) => set(c, eo(lin(t, T.outro + .7 + i * .22, T.outro + 1.1 + i * .22))));
+    set($('sign'), eo(lin(t, T.outro + 2.6, T.outro + 3.4)));
+  }
+  $('progress').style.transform = `scaleX(${clamp(t / T.end)})`;
+  set($('fade'), Math.max(1 - eo(lin(t, 0, .6)), eio(lin(t, T.end - .5, T.end))));
+  return true;
+};
+</script>
+</body>
+</html>

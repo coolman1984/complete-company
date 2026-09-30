@@ -112,6 +112,8 @@ export async function launch({ profileDir, headless = false, exe = findBrowser()
         await browser.send('Browser.setWindowBounds', { windowId, bounds: { ...bounds, windowState: 'normal' } });
       }
       if (headless && bounds) await page.send('Emulation.setDeviceMetricsOverride', { width: bounds.width, height: bounds.height, deviceScaleFactor: bounds.scale ?? 1, mobile: false });
+      // the plant's clock on every screen, whatever the machine's zone (a film shot on a server in UTC showed two times)
+      if (bounds?.timezone) await page.send('Emulation.setTimezoneOverride', { timezoneId: bounds.timezone }).catch(() => {});
       pages.push(page);
       if (url) await page.goto(url);
       return page;
