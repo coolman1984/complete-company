@@ -33,6 +33,7 @@ Complete Company\
 | Double-click | What starts |
 |---|---|
 | `Start-Integrated-Demo.bat` | **The applications connected**: Mizan, GMES and HR-System under one company, already paired, with the result of a whole business chain (S&OP + sales order → planning → purchase → receiving and inspection → serial production → packing and dispatch → delivery, invoice, payment → HR staffing gap). First run builds it (about two minutes). Sign in to every application with `admin / Demo-2026!`. Data: `..\_integrated-demo` |
+| `Start-Ceramic-Demo.bat` | The same connected applications as a **ceramic-tile factory** (Demo Ceramics Co.): one distributor order of 1,440 m² from demand to cash — MRP, purchasing, a wrong-shade glaze lot stopped at incoming inspection, production by shade lot with losses by reason and a kiln stoppage, cost through WIP, delivery of one shade only, invoice, payment, staffing gap. Small data, first run about a minute. Presentation script: `scenario/ceramic/STORYBOARD.md`. Data: `..\_ceramic-demo`. Run one demo company at a time (same ports). |
 | `Start-Complete-Company.bat` | The four applications with their **real** data, each in its own window, and the portal at http://127.0.0.1:4500/ |
 | `Start-Complete-Company-Demo.bat` | The **demonstration** copies (own data folders and ports), sign in everywhere with **admin / 123** |
 
