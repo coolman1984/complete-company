@@ -31,7 +31,7 @@
   #intro .sub { font-size: 40px; color: var(--soft); }
   #intro .live { font-size: 26px; color: var(--ok); font-weight: 600; }
   /* scene card */
-  #card { display: flex; flex-direction: column; justify-content: center; padding: 0 200px; gap: 18px; }
+  #card { display: flex; flex-direction: column; justify-content: center; padding: 0 440px 0 120px; gap: 18px; }
   #card .num { font-size: 300px; font-weight: 700; line-height: .9; color: transparent; -webkit-text-stroke: 3px rgba(216,115,63,.9); }
   #card h2 { margin: 0; font-size: 92px; font-weight: 700; line-height: 1.15; }
   #card .tags { display: flex; gap: 16px; }
@@ -52,6 +52,15 @@
   #panel .clock { background: rgba(244,239,232,.06); border: 1px solid rgba(244,239,232,.12); border-radius: 18px; padding: 20px 24px; }
   #panel .clock .l { font-size: 20px; color: var(--soft); }
   #panel .clock .v { font-size: 64px; font-weight: 700; direction: ltr; text-align: right; font-variant-numeric: tabular-nums; }
+  #thread { background: rgba(244,239,232,.07); border: 1px solid rgba(216,115,63,.55); border-radius: 18px; padding: 16px 20px; display: none; }
+  #thread .tt { font-size: 22px; color: var(--clay2); font-weight: 700; }
+  #thread .th { font-size: 27px; font-weight: 700; margin: 4px 0 10px; line-height: 1.3; }
+  #thread .chip { display: flex; align-items: center; gap: 10px; font-size: 20px; color: var(--dim); margin-top: 7px; }
+  #thread .chip i { width: 18px; height: 18px; border-radius: 9px; border: 2px solid rgba(244,239,232,.25); flex: none; display: grid; place-items: center; font-size: 12px; font-style: normal; color: #111; }
+  #thread .chip.done { color: var(--ink); }
+  #thread .chip.done i { background: var(--ok); border-color: var(--ok); }
+  .cta { position: absolute; left: 0; right: 0; top: 640px; text-align: center; direction: rtl; }
+  .cta span { display: inline-block; font-size: 38px; font-weight: 700; padding: 20px 44px; border-radius: 50px; background: var(--clay); color: #fff; box-shadow: 0 18px 50px rgba(216,115,63,.4); }
   #panel .steps { display: flex; flex-direction: column; gap: 14px; }
   #panel .step { display: flex; align-items: center; gap: 14px; font-size: 23px; color: var(--dim); }
   #panel .step .m { width: 30px; height: 30px; border-radius: 15px; border: 2px solid rgba(244,239,232,.22); flex: none; display: grid; place-items: center; font-size: 18px; color: #111; }
@@ -120,6 +129,7 @@
     </div>
     <div id="panel">
       <div class="brand"><b></b>الوكيل الذكي شغال</div>
+      <div id="thread"><div class="tt"></div><div class="th"></div><div class="chips"></div></div>
       <div class="clock"><div class="l">زمن التشغيل الحقيقي</div><div class="v" id="clock">00:00.0</div></div>
       <div class="steps" id="steps"></div>
       <div class="scene" id="scenelabel"></div>
@@ -142,7 +152,8 @@
     <div class="bigtitle" style="top:250px" id="otitle"></div>
     <div class="subtitle" style="top:370px" id="osub"></div>
     <div class="chain" id="chain"></div>
-    <div class="subtitle" id="sign" style="top:820px;font-size:30px;color:var(--dim)">الوكيل الذكي · Complete Company</div>
+    <div class="cta" id="cta"><span></span></div>
+    <div class="subtitle" id="sign" style="top:840px;font-size:28px;color:var(--dim)">الوكيل الذكي · Complete Company</div>
   </div>
 
   <div id="progress" style="position:absolute;left:0;bottom:0;height:5px;width:1920px;background:linear-gradient(90deg,#D8733F,#F0A06F);transform-origin:100% 50%"></div>
@@ -227,21 +238,31 @@ window.load = (cut) => {
   CUT = cut;
   for (const tk of Object.values(cut.takes)) tk.cam = cameraPath(tk, tk.viewport.w, tk.viewport.h);
   $('kicker').textContent = cut.intro.kicker; $('ititle').textContent = cut.intro.title; $('isub').textContent = cut.intro.sub;
-  let t = 5.0;
-  cut.T = { introEnd: 5.2 };
+  const INTRO = cut.intro.len ?? 5.2, CARD = cut.cardLen ?? 3.4;
+  let t = INTRO - 0.2;
+  cut.T = { introEnd: INTRO };
   for (const sc of cut.scenes) {
     const tk = cut.takes[sc.take];
     sc.from = markAt(tk, sc.start); sc.to = markAt(tk, sc.end);
-    sc.card = t; sc.cardEnd = t + 3.4; sc.main = t + 3.0; sc.mainEnd = sc.main + (sc.to - sc.from) / 1000 + 0.3;
+    sc.card = t; sc.cardEnd = t + CARD; sc.main = t + CARD - 0.4; sc.mainEnd = sc.main + (sc.to - sc.from) / 1000 + 0.3;
     sc.says = tk.events.filter((e) => e.type === 'say' && e.text && e.t >= sc.from - 50 && e.t <= sc.to);
     sc.stepsAt = sc.steps.map((s) => ({ label: s.label, done: markAt(tk, s.done) }));
     sc.stampsAt = (sc.stamps ?? []).map((s) => ({ ...s, at: markAt(tk, s.at) }));
     sc.badgesAt = (sc.badges ?? []).map((s) => ({ ...s, at: markAt(tk, s.at) }));
-    t = sc.mainEnd - 0.2;
+    t = sc.mainEnd;   // the next chapter title enters as this window leaves: no gap, no overlap
   }
+  if (cut.thread) {   // the persistent actor: each chip is done at the film time of a mark inside one scene
+    cut.thread.chips.forEach((c) => { const sc = cut.scenes.find((x) => x.num === c.scene); c.t = sc.main + (markAt(cut.takes[sc.take], c.mark) - sc.from) / 1000; });
+    cut.thread.from = cut.scenes[0].main + 0.6; cut.thread.to = cut.scenes[cut.scenes.length - 1].mainEnd;
+    $('thread').querySelector('.tt').textContent = cut.thread.kicker ?? ''; $('thread').querySelector('.th').textContent = cut.thread.title;
+    $('thread').querySelector('.chips').replaceChildren(...cut.thread.chips.map((c, i) => { const d = el('div', 'chip'); d.id = 'chip' + i; d.append(el('i'), el('span', null, c.label)); return d; }));
+    $('thread').style.display = 'block';
+  }
+  if (cut.stampTop) $('stamp').style.top = cut.stampTop + 'px';   // keep the stamp off the table being read
   cut.T.stats = t; cut.T.statsEnd = t + 7.0; cut.T.outro = cut.T.statsEnd - 0.2; cut.T.end = cut.T.outro + 6.4;
   $('stitle').textContent = cut.stats.title; $('statsline').textContent = cut.stats.line ?? '';
   $('tiles').replaceChildren(...cut.stats.tiles.map((x, i) => { const d = el('div', 'tile'); d.id = 'tile' + i; d.append(el('div', 'v', ''), el('div', 'l', x.label)); return d; }));
+  $('cta').firstChild.textContent = cut.outro.cta ?? ''; $('cta').style.display = cut.outro.cta ? 'block' : 'none'; if (cut.outro.sign) $('sign').textContent = cut.outro.sign;
   $('otitle').textContent = cut.outro.title; $('osub').textContent = cut.outro.sub;
   $('chain').replaceChildren(...cut.outro.chain.flatMap((c, i) => { const s = el('span', 'c' + (c.done ? ' hl' : ''), c.label); return i < cut.outro.chain.length - 1 ? [s, el('span', 'arr', '←')] : [s]; }));
   cut.duration = cut.T.end;
@@ -253,7 +274,7 @@ window.cues = () => {
   const out = { cuts: [], clicks: [], typing: [], pops: [], chimes: [] };
   for (const sc of CUT.scenes) {
     const tk = CUT.takes[sc.take], at = (ms) => sc.main + (ms - sc.from) / 1000;
-    out.cuts.push(sc.card - 0.25, sc.main - 0.1);
+    out.cuts.push(sc.card - 0.12);
     const inside = tk.events.filter((e) => e.t >= sc.from && e.t <= sc.to);
     inside.forEach((e, i) => {
       if (e.type === 'click') out.clicks.push(at(e.t));
@@ -277,29 +298,28 @@ window.renderAt = async (t) => {
   st.setProperty('--g1x', `${30 + 10 * Math.sin(t * .23)}%`); st.setProperty('--g1y', `${30 + 8 * Math.cos(t * .19)}%`);
   st.setProperty('--g2x', `${72 + 9 * Math.cos(t * .17)}%`); st.setProperty('--g2y', `${70 + 7 * Math.sin(t * .21)}%`);
   $('grid').style.transform = `translate(${(t * 6) % 36}px, ${(t * 3) % 36}px)`;
-  // ---- intro
+  // ---- intro: a finished composition at frame 0 (nothing enters from black or blur); a slow settle keeps it alive
   {
-    const inn = eo(lin(t, .2, 1.4)), out = eio(lin(t, T.introEnd - .9, T.introEnd)), e = $('intro');
-    set(e, inn * (1 - out), `scale(${mix(1.06, 1, inn) * mix(1, .94, out)})`);
-    const h1 = $('ititle'), hx = eo(lin(t, .35, 1.6));
-    h1.style.filter = `blur(${mix(18, 0, hx)}px)`; h1.style.letterSpacing = `${mix(30, 0, hx)}px`;
-    e.querySelector('.rule').style.transform = `scaleX(${eo(lin(t, .9, 2.0))})`;
-    set($('isub'), eo(lin(t, 1.5, 2.3)), `translateY(${mix(24, 0, eo(lin(t, 1.5, 2.3)))}px)`);
-    set(e.querySelector('.live'), eo(lin(t, 2.3, 3.0))); set($('kicker'), eo(lin(t, .8, 1.6)));
+    const out = eio(lin(t, T.introEnd - .7, T.introEnd)), e = $('intro');
+    set(e, 1 - out, `scale(${mix(1.035, 1, lin(t, 0, T.introEnd)) * mix(1, .95, out)})`);
+    $('ititle').style.filter = 'none'; $('ititle').style.letterSpacing = '0px';
+    e.querySelector('.rule').style.transform = 'scaleX(1)';
+    set($('isub'), 1, 'none'); set(e.querySelector('.live'), 1); set($('kicker'), 1);
   }
   // ---- the scene whose card or footage is on screen now
-  const sc = CUT.scenes.find((s) => t >= s.card && t < s.mainEnd + .35) ?? null;
+  const sc = [...CUT.scenes].reverse().find((s) => t >= s.card && t < s.mainEnd + .02) ?? null;
   set($('card'), 0); set($('main'), 0);
   if (sc) {
-    const inn = eo(lin(t, sc.card, sc.card + .8)), out = eio(lin(t, sc.cardEnd - .8, sc.cardEnd));
+    const CL = Math.min(.8, (sc.cardEnd - sc.card) * .3), inn = eo(lin(t, sc.card, sc.card + CL)), out = eio(lin(t, sc.cardEnd - CL, sc.cardEnd));
     if ($('cnum').textContent !== sc.num) { $('cnum').textContent = sc.num; $('ctitle').textContent = sc.title; $('ctags').replaceChildren(...sc.tags.map((x) => el('span', 'tag', x))); }
     set($('card'), inn * (1 - out), `translateX(${mix(-90, 0, inn) + mix(0, 160, out)}px)`);
     $('cnum').style.transform = `translateY(${mix(60, 0, eo(lin(t, sc.card, sc.card + 1)))}px)`;
-    $('ctags').querySelectorAll('.tag').forEach((g, i) => set(g, eo(lin(t, sc.card + .6 + i * .15, sc.card + 1.1 + i * .15))));
-    const mi = eo(lin(t, sc.main, sc.main + 1.0)), mo = eio(lin(t, sc.mainEnd - .6, sc.mainEnd + .3));
+    $('ctags').querySelectorAll('.tag').forEach((g, i) => set(g, eo(lin(t, sc.card + CL * .7 + i * .1, sc.card + CL * 1.2 + i * .1))));
+    const mi = eo(lin(t, sc.main, sc.main + .9)), mo = eio(lin(t, sc.mainEnd - .5, sc.mainEnd));
     set($('main'), mi * (1 - mo));
-    $('win').style.transform = `perspective(2200px) rotateX(${mix(5, 0, mi)}deg) scale(${mix(.96, 1, mi) * mix(1, .97, mo)}) translateY(${mix(30, 0, mi)}px)`;
-    set($('panel'), eo(lin(t, sc.main + .5, sc.main + 1.3)), `translateX(${mix(60, 0, eo(lin(t, sc.main + .5, sc.main + 1.3)))}px)`);
+    $('win').style.transform = `perspective(2200px) rotateX(${mix(5, 0, mi)}deg) scale(${mix(.96, 1, mi) * mix(1, .97, mo) * (1 + .03 * lin(t, sc.main, sc.mainEnd))}) translateY(${mix(30, 0, mi)}px)`;
+    // the side panel belongs to the whole film when there is a thread, and stays between scenes; without one it comes with each scene
+    if (!CUT.thread) set($('panel'), eo(lin(t, sc.main + .5, sc.main + 1.3)), `translateX(${mix(60, 0, eo(lin(t, sc.main + .5, sc.main + 1.3)))}px)`);
     if (t >= sc.main - .1) {
       const tk = CUT.takes[sc.take];
       const ms = clamp(sc.from + (t - sc.main) * 1000, sc.from, sc.to);
@@ -326,6 +346,12 @@ window.renderAt = async (t) => {
       } else set($('stamp'), 0);
     }
   }
+  // ---- the persistent actor: its card lives in the side panel across every scene
+  if (CUT.thread) {
+    const TH = CUT.thread, pin = eo(lin(t, TH.from, TH.from + .9)), pout = eio(lin(t, TH.to - .4, TH.to + .3));
+    set($('panel'), t >= TH.from && t < TH.to + .35 ? pin * (1 - pout) : 0, `translateX(${mix(60, 0, pin)}px)`);
+    TH.chips.forEach((c, i) => { const e = $('chip' + i), done = t >= c.t; e.className = 'chip' + (done ? ' done' : ''); e.querySelector('i').textContent = done ? '✓' : ''; });
+  }
   // ---- figures
   {
     const inn = eo(lin(t, T.stats, T.stats + .8)), out = eio(lin(t, T.statsEnd - .6, T.statsEnd));
@@ -347,7 +373,7 @@ window.renderAt = async (t) => {
     set($('sign'), eo(lin(t, T.outro + 2.6, T.outro + 3.4)));
   }
   $('progress').style.transform = `scaleX(${clamp(t / T.end)})`;
-  set($('fade'), Math.max(1 - eo(lin(t, 0, .6)), eio(lin(t, T.end - .5, T.end))));
+  set($('fade'), eio(lin(t, T.end - .5, T.end)));
   return true;
 };
 </script>

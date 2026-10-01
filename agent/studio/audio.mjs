@@ -1,6 +1,9 @@
 // The film's sound, synthesised here so it carries no licence: a warm pad with a soft arpeggio underneath, and sound
 // effects placed on the agent's real moves (a click on every click, soft key ticks while it types, a whoosh on every
 // transition, a pop when the entry balances, a chime when it is proven). Deterministic: a seeded noise source.
+// Sound rules from the motion-video-kit (echris6, MIT): one short, soft, rumble-free whoosh per real transition (little energy
+// under ~200 Hz, a gentle rise, a quarter of a second); small clean sounds only on real actions; the music carries the film.
+// Loudness is set by the renderer (-16 LUFS integrated, true peak <= -1.5 dBFS); a music-only version is always delivered too.
 import { writeFileSync } from 'node:fs';
 
 const RATE = 48_000;
@@ -40,9 +43,10 @@ export function soundtrack({ duration, cuts = [], clicks = [], typing = [], pops
     for (let j = 0; j < len; j++) { const x = Math.sin(2 * Math.PI * hz * j / RATE) * Math.exp(-j / (0.12 * RATE)) * vel; add(start + j, x * (1 - pan) * 2 * 0.5, x * pan * 2 * 0.5); }
   }
   // ---- effects
-  for (const t of clicks) { const s = Math.floor(t * RATE); let prev = 0; for (let j = 0; j < 0.012 * RATE; j++) { const w = rnd(); const hp = w - prev; prev = w; const x = hp * 0.22 * Math.exp(-j / (0.0025 * RATE)) + Math.sin(2 * Math.PI * 2100 * j / RATE) * 0.05 * Math.exp(-j / (0.002 * RATE)); add(s + j, x); } }
-  for (const t of typing) { const s = Math.floor(t * RATE); let prev = 0; for (let j = 0; j < 0.006 * RATE; j++) { const w = rnd(); const hp = w - prev; prev = w; add(s + j, hp * 0.06 * Math.exp(-j / (0.0012 * RATE))); } }
-  for (const t of cuts) { const s = Math.floor(t * RATE), len = Math.floor(0.9 * RATE); let lp = 0; for (let j = 0; j < len; j++) { const p = j / len, cut = 0.02 + 0.5 * Math.sin(Math.PI * p); lp += cut * (rnd() - lp); const a = Math.sin(Math.PI * p) ** 2 * 0.22; add(s + j, lp * a * (1 - p * 0.6), lp * a * (0.4 + p * 0.6)); } }
+  for (const t of clicks) { const s = Math.floor(t * RATE); let prev = 0; for (let j = 0; j < 0.012 * RATE; j++) { const w = rnd(); const hp = w - prev; prev = w; const x = hp * 0.16 * Math.exp(-j / (0.0025 * RATE)) + Math.sin(2 * Math.PI * 2100 * j / RATE) * 0.035 * Math.exp(-j / (0.002 * RATE)); add(s + j, x); } }
+  for (const t of typing) { const s = Math.floor(t * RATE); let prev = 0; for (let j = 0; j < 0.006 * RATE; j++) { const w = rnd(); const hp = w - prev; prev = w; add(s + j, hp * 0.035 * Math.exp(-j / (0.0012 * RATE))); } }
+  // a soft "air pass": 0.38 s of noise whose upper edge rises from ~600 Hz to ~3.5 kHz, with everything under ~200 Hz taken out
+  for (const t of cuts) { const s = Math.floor(t * RATE), len = Math.floor(0.38 * RATE); let hi = 0, lo = 0; for (let j = 0; j < len; j++) { const p = j / len, w = rnd(); hi += (1 - Math.exp(-2 * Math.PI * (600 + 2900 * p * p) / RATE)) * (w - hi); lo += 0.0258 * (w - lo); const a = Math.sin(Math.PI * p) ** 2 * 0.2; const x = (hi - lo) * a; add(s + j, x * (1 - p * 0.5), x * (0.5 + p * 0.5)); } }
   for (const t of pops) { const s = Math.floor(t * RATE); let ph = 0; for (let j = 0; j < 0.12 * RATE; j++) { const p = j / (0.12 * RATE); ph += 2 * Math.PI * (420 + 700 * p) / RATE; add(s + j, Math.sin(ph) * 0.16 * (1 - p) ** 2); } }
   for (const t of chimes) { const s = Math.floor(t * RATE); for (const [hz, a, d] of [[880, 0.12, 1.2], [1318.51, 0.09, 1.0], [1760, 0.05, 0.7]]) for (let j = 0; j < d * 1.5 * RATE; j++) add(s + j, Math.sin(2 * Math.PI * hz * j / RATE) * a * Math.exp(-j / (d * 0.35 * RATE))); }
 

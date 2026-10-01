@@ -1,0 +1,325 @@
+{
+ "note": "Film 4: from the customer's order to the purchase order. Marks are the agent's own events in each take; checks are compared with each take's result before anything is rendered. The order is entered in Mizan through its order API and the goods receipt through its receipt API (staged, said in the brief); everything else is done in the screens.",
+ "takes": [
+  "plant",
+  "buy",
+  "recv"
+ ],
+ "checks": [
+  {
+   "take": "plant",
+   "key": "order",
+   "equals": "SO-00001"
+  },
+  {
+   "take": "plant",
+   "key": "requisitions",
+   "equals": 4
+  },
+  {
+   "take": "plant",
+   "key": "errors",
+   "equals": 0
+  },
+  {
+   "take": "buy",
+   "key": "pos",
+   "equals": 2
+  },
+  {
+   "take": "recv",
+   "key": "lots",
+   "equals": 4
+  }
+ ],
+ "cardLen": 1.7,
+ "intro": {
+  "len": 3.6,
+  "kicker": "مصنع السيراميك التجريبي · شركة وهمية لأغراض العرض",
+  "title": "الوكيل الذكي",
+  "sub": "من طلب العميل لحد أمر الشراء، جوه البرامج الحقيقية"
+ },
+ "thread": {
+  "kicker": "طلب العميل",
+  "title": "الدلتا لمواد البناء · ١٬٤٤٠ م²",
+  "chips": [
+   {
+    "label": "وصل المصنع",
+    "scene": "02",
+    "mark": {
+     "type": "proven",
+     "n": 0
+    }
+   },
+   {
+    "label": "اتخطط: ٤ طلبات شراء",
+    "scene": "03",
+    "mark": {
+     "type": "proven",
+     "n": 2
+    }
+   },
+   {
+    "label": "أمرين شراء معتمدين",
+    "scene": "04",
+    "mark": {
+     "type": "proven",
+     "n": 2
+    }
+   },
+   {
+    "label": "الخامات وصلت المصنع",
+    "scene": "05",
+    "mark": {
+     "type": "proven",
+     "n": 0
+    }
+   }
+  ]
+ },
+ "scenes": [
+  {
+   "num": "02",
+   "title": "الطلب يوصل\nالمصنع لوحده",
+   "tags": [
+    "١٬٤٤٠ م²",
+    "بورسلين ٦٠×٦٠",
+    "من الحسابات للمصنع"
+   ],
+   "take": "plant",
+   "start": "start",
+   "end": {
+    "type": "scene",
+    "n": 1
+   },
+   "window": "إتقان · برنامج التصنيع",
+   "label": "المشهد ٠٢ · الطلب",
+   "steps": [
+    {
+     "label": "الطلب اتسجّل في الحسابات",
+     "done": {
+      "type": "arrived",
+      "n": 0
+     }
+    },
+    {
+     "label": "الطلب ظهر في المصنع",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 0
+     },
+     "title": "الطلب وصل المصنع",
+     "text": "SO-00001 · سطر واحد · ١٬٤٤٠ م² · من غير إدخال تاني",
+     "hold": 2800
+    }
+   ]
+  },
+  {
+   "num": "03",
+   "title": "التخطيط:\nالخامات المطلوبة",
+   "tags": [
+    "تشغيل التخطيط",
+    "أمر إنتاج",
+    "٤ طلبات شراء"
+   ],
+   "take": "plant",
+   "start": {
+    "type": "scene",
+    "n": 1
+   },
+   "end": "end",
+   "window": "إتقان · برنامج التصنيع",
+   "label": "المشهد ٠٣ · التخطيط",
+   "steps": [
+    {
+     "label": "تشغيل تخطيط الخامات",
+     "done": {
+      "type": "proven",
+      "n": 1
+     }
+    },
+    {
+     "label": "أمر الإنتاج المقترح",
+     "done": {
+      "type": "look",
+      "n": 0
+     }
+    },
+    {
+     "label": "٤ طلبات شراء بكمياتها",
+     "done": {
+      "type": "proven",
+      "n": 2
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 2
+     },
+     "title": "الخامات بالظبط",
+     "text": "الطلب × وصفة التصنيع: طفلة ٢٥٬٩٢٠ · فلسبار ٥٬٧٦٠ · جليز ١٬١٥٢ · كراتين ١٬٠٠٨",
+     "hold": 3600
+    }
+   ]
+  },
+  {
+   "num": "04",
+   "title": "الشراء: من الطلب\nلأمر معتمد",
+   "tags": [
+    "أمرين شراء",
+    "مورد لكل أمر",
+    "اعتماد المسؤول"
+   ],
+   "take": "buy",
+   "start": "start",
+   "end": "end",
+   "window": "ميزان · برنامج الحسابات",
+   "label": "المشهد ٠٤ · الشراء",
+   "steps": [
+    {
+     "label": "طلبات الشراء وصلت الحسابات",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    },
+    {
+     "label": "أمر الطفلة والفلسبار",
+     "done": {
+      "type": "proven",
+      "n": 1
+     }
+    },
+    {
+     "label": "أمر الجليز والكراتين",
+     "done": {
+      "type": "proven",
+      "n": 2
+     }
+    },
+    {
+     "label": "الأوامر المعتمدة",
+     "done": {
+      "type": "proven",
+      "n": 3
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 1
+     },
+     "title": "أمر شراء معتمد",
+     "text": "PO-00001 · سطرين · كل سطر ماسك رابط طلبه",
+     "hold": 2600
+    }
+   ]
+  },
+  {
+   "num": "05",
+   "title": "الاستلام:\nالخامات في المصنع",
+   "tags": [
+    "٤ دفعات",
+    "فحص الوارد"
+   ],
+   "take": "recv",
+   "start": "start",
+   "end": "end",
+   "window": "إتقان · برنامج التصنيع",
+   "label": "المشهد ٠٥ · الاستلام",
+   "steps": [
+    {
+     "label": "الدفعات ظهرت بلوطاتها",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 0
+     },
+     "title": "الخامات وصلت",
+     "text": "٤ دفعات · الطفلة والجليز مستنيين الفحص · الفلسبار والكراتين متاحين",
+     "hold": 3400
+    }
+   ]
+  }
+ ],
+ "stats": {
+  "title": "طلب واحد، خامات بالظبط",
+  "tiles": [
+   {
+    "value": 1440,
+    "group": true,
+    "label": "م² طلب العميل"
+   },
+   {
+    "value": 4,
+    "label": "طلبات شراء طلعت من التخطيط لوحدها"
+   },
+   {
+    "value": 2,
+    "label": "أوامر شراء معتمدة"
+   },
+   {
+    "value": 4,
+    "label": "دفعات خامات وصلت المصنع"
+   }
+  ],
+  "line": "كل رقم هنا طالع من البرامج نفسها بعد التشغيل، مش مكتوب بإيد"
+ },
+ "outro": {
+  "title": "الطلب بقى خامات في المصنع",
+  "sub": "كل خطوة جوه برنامجها، والطلب ماسك طريقه من أولها لآخرها",
+  "cta": "الخطوة الجاية: جرّب طلب حقيقي من مصنعك",
+  "sign": "شركة وهمية · فيلم توضيحي لأغراض العرض · الوكيل الذكي",
+  "chain": [
+   {
+    "label": "طلب العميل",
+    "done": true
+   },
+   {
+    "label": "التخطيط",
+    "done": true
+   },
+   {
+    "label": "الشراء",
+    "done": true
+   },
+   {
+    "label": "استلام الخامات",
+    "done": true
+   },
+   {
+    "label": "الإنتاج والجودة"
+   },
+   {
+    "label": "الحاوية"
+   },
+   {
+    "label": "الفاتورة والتحصيل"
+   },
+   {
+    "label": "الإقفال والقوائم"
+   }
+  ]
+ },
+ "stampTop": 650
+}

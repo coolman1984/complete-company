@@ -3,6 +3,7 @@
 // aac) joins the frames and the synthesised soundtrack into an MP4 that plays on phones, WhatsApp and PowerPoint.
 //   node agent/studio/render.mjs <show-take-dir> <fast-take-dir> <out.mp4> [--fps 30] [--from s --to s] [--crf 20]
 //   node agent/studio/render.mjs --cut agent/studio/cuts/<film>.json --take <name>=<dir> ... <out.mp4>   (scene films)
+// --fallback: also writes <out>-music.mp4, the same picture with the music only (to isolate any complaint about the effects)
 // --crf: 17 archive quality, 20 default, 22 to share (WhatsApp, e-mail: two minutes stay under 25 MB)
 import { createServer } from 'node:http';
 import { spawn } from 'node:child_process';
@@ -22,6 +23,7 @@ const TAKES = Object.fromEntries(args.map((a, i) => (args[i - 1] === '--take' ? 
 const out = CUT_FILE ? showDir : out0;
 const FPS = Number(opt('fps', 30));
 const FFMPEG = process.env.FFMPEG_PATH ?? 'ffmpeg';
+const AFILTER = 'loudnorm=I=-16:TP=-1.5:LRA=7,alimiter=limit=0.84:level=disabled';   // calm pieces about -16 LUFS, true peak under -1 dBFS
 const FONTS = process.env.FONTS_DIR ?? resolve(here, '../../../Accounting-sys/node_modules/@fontsource/ibm-plex-sans-arabic/files');
 if (!out || (!CUT_FILE && (!showDir || !fastDir))) { console.error('usage: render.mjs <show-take-dir> <fast-take-dir> <out.mp4>\n   or: render.mjs --cut <cut.json> --take <name>=<dir> ... <out.mp4>'); process.exit(2); }
 
@@ -105,12 +107,12 @@ try {
   writeSoundtrack(wav, spec);
 
   if (opt('remux')) { // new sound on an already rendered picture: no frame is rendered again
-    await new Promise((r, j) => spawn(FFMPEG, ['-y', '-loglevel', 'error', '-i', opt('remux'), '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out], { stdio: 'inherit' }).on('exit', (c) => (c ? j(new Error('ffmpeg ' + c)) : r())));
+    await new Promise((r, j) => spawn(FFMPEG, ['-y', '-loglevel', 'error', '-i', opt('remux'), '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af', AFILTER, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out], { stdio: 'inherit' }).on('exit', (c) => (c ? j(new Error('ffmpeg ' + c)) : r())));
     console.log('written', out); await b.close(); server.close(); process.exit(0);
   }
   ff = spawn(FFMPEG, ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-c:v', 'mjpeg', '-framerate', String(FPS), '-i', 'pipe:0',
     '-ss', String(from), '-i', wav, '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'slow', '-crf', String(opt('crf', 20)), '-pix_fmt', 'yuv420p',
-    '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out], { stdio: ['pipe', 'inherit', 'inherit'] });
+    '-af', AFILTER, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out], { stdio: ['pipe', 'inherit', 'inherit'] });
   const started = Date.now();
   for (let i = 0; i < frames; i++) {
     const t = from + i / FPS;
@@ -122,6 +124,12 @@ try {
   ff.stdin.end();
   await new Promise((r) => ff.on('exit', r));
   console.log('written', out);
+  if (opt('fallback') !== undefined || args.includes('--fallback')) {   // same picture, music only: copy the video, mix the second track
+    const wav2 = out.replace(/\.mp4$/, '') + '-music.wav', out2 = out.replace(/\.mp4$/, '') + '-music.mp4';
+    writeSoundtrack(wav2, { duration: T.end });
+    await new Promise((r, j) => spawn(FFMPEG, ['-y', '-loglevel', 'error', '-i', out, '-i', wav2, '-map', '0:v', '-map', '1:a', '-c:v', 'copy', '-af', AFILTER, '-c:a', 'aac', '-b:a', '192k', '-movflags', '+faststart', '-shortest', out2], { stdio: 'inherit' }).on('exit', (c) => (c ? j(new Error('ffmpeg ' + c)) : r())));
+    console.log('written', out2);
+  }
 } finally {
   await b.close(); server.close();
 }
