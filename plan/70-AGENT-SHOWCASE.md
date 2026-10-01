@@ -247,3 +247,16 @@ gas, power, maintenance, salaries, depreciation, collections). On camera: 06 the
 **Found on the way, fixed in Itqan with tests and planted bugs:** the line board showed square metres as "pcs" and went
 blank the moment the order finished (now the order's unit, and the finished order stays with a "completed" chip); the
 release plan called a lot item on a routing a "serial flow".
+
+## 12. Film 4: from the customer's order to the purchase order (2026-10-01)
+
+Made after studying the motion-video-kit (`agent/studio/CRAFT.md`: what was adopted, what not, and why). Itqan and Mizan run in
+the shoot's process, paired, on a studio clock (`sets/order-to-po.mjs`); `shoot-order-to-po.mjs` films three takes at 1280×800;
+`cuts/order-to-po.json` makes the film (105 s). Scenes: 02 the distributor's order reaches Itqan (entered in Mizan through its
+order API — Mizan has no order screen yet — said in `film4/BRIEF.md`); 03 planning: the run, the planned tile order, the four
+requisitions that equal the order × the bill of materials (clay 25,920, feldspar 5,760, glaze 1,152, cartons 1,008); 04 in Mizan the
+agent ticks the requisitions of one supplier, converts, saves-and-approves two purchase orders; 05 the goods receipts (recorded through
+Mizan's receipt API) appear in Itqan's incoming lots, clay and glaze waiting for inspection. A card for the order stays in the side
+panel and fills in as each application does its part. Measured: −16.0 LUFS, true peak −3.9 dBFS, frozen time 20 s per 30 s (the
+kit's bar is ≤ 1; see `film4/LEDGER.md`). Studio changes that apply to every film from now on: finished first frame, short chapter
+titles, a 3 % push, softer sound, loudness in the renderer, `--fallback` music-only version, `measure.mjs`.

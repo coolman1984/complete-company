@@ -65,7 +65,7 @@ try {
     if (!arrived) throw new Error('the order did not reach the factory');
     s.mark('proven', { what: 'order arrived', order: order.number });
     await s.say(`وصل: ${order.number}، سطر واحد، ${ar(ORDER_M2)} م² بورسلين، من غير ما حد يكتبه تاني`);
-    await s.wait(4200);
+    await s.wait(3000);
     // ---- scene 03: planning
     s.mark('scene', { n: 3 });
     run = await gmes.runPlanning(s, gm, {
@@ -75,7 +75,7 @@ try {
     await s.wait(3600);
     await gmes.goTo(s, 'PLN2040', { explain: `أمر الإنتاج المقترح: ${ar(ORDER_M2)} م² بورسلين على خط البلاط ١، مربوط بالطلب`, ready: `location.hash === '#PLN2040' && document.body.innerText.includes('TL-6060-WHT')` });
     s.mark('look', { what: 'planned order' });
-    await s.wait(4800);
+    await s.wait(3400);
     await gmes.goTo(s, 'PLN2050', { explain: 'والخامات اللي لازم تتشترى: كل طلب شراء بكميته وميعاد الاحتياج وآخر ميعاد للطلب', ready: `location.hash === '#PLN2050' && document.body.innerText.includes('CLAY-RED')` });
     reqs = await gm('GET', '/api/pln/requisitions');
     const need = {};
@@ -83,7 +83,7 @@ try {
     if (JSON.stringify(Object.entries(NEED).sort()) !== JSON.stringify(Object.entries(need).sort())) throw new Error('planning asks for ' + JSON.stringify(need));
     s.mark('proven', { what: 'requisitions', need });
     await s.say(`طفلة ${ar(NEED['CLAY-RED'])} كجم، فلسبار ${ar(NEED.FELDSPAR)}، جليز ${ar(NEED['GLZ-WHT'])}، كراتين ${ar(NEED['CTN-60'])}: الطلب × وصفة التصنيع بالظبط`);
-    await s.wait(6500);
+    await s.wait(5200);
     s.mark('done');
     return { order: order.number, planned: run.stats.plannedOrders, requisitions: run.stats.requisitions, errors: run.stats.errors, need };
   });
@@ -102,7 +102,7 @@ try {
     const mine = (await mz('GET', '/api/purchase-requisitions')).filter((r) => r.status === 'open');
     if (mine.length !== 4) throw new Error('Mizan holds ' + mine.length + ' open requisitions');
     s.mark('proven', { what: 'requisitions arrived', n: mine.length });
-    await s.wait(5200);
+    await s.wait(3600);
     const bySupplier = (name) => mine.filter((r) => (r.supplier_name ?? '').includes(name)).map((r) => r.number);
     pos.push(await mizan.convertToPurchaseOrder(s, mz, { numbers: bySupplier('أسوان'), explain: 'الطفلة والفلسبار من نفس المورد: بحوّلهم لأمر شراء واحد',
       supplierNote: 'أمر مسوّدة بسطر لكل طلب، وكل سطر ماسك رابط طلبه. المسؤول هو اللي بيعتمد',
@@ -113,7 +113,7 @@ try {
     await s.wait(2600);
     await mizan.goTo(s, '/purchasing/orders', { explain: 'أوامر الشراء الاتنين معتمدين وفي طريقهم للموردين', ready: `location.pathname === '/purchasing/orders' && document.body.innerText.includes(${JSON.stringify(pos[0].number)})` });
     s.mark('proven', { what: 'orders listed', n: pos.length });
-    await s.wait(6000);
+    await s.wait(3800);
     s.mark('done');
     return { pos: pos.length, lines: pos.map((p) => p.lines.length), numbers: pos.map((p) => p.number) };
   });
@@ -147,7 +147,7 @@ try {
     if (st['CLAY-RED'] !== 'pending_iqc' || st['GLZ-WHT'] !== 'pending_iqc' || st.FELDSPAR !== 'accepted' || st['CTN-60'] !== 'accepted') throw new Error('unexpected lot statuses ' + JSON.stringify(st));
     s.mark('proven', { what: 'lots arrived', n: lots.length, statuses: lots.map((l) => `${l.item_code}:${l.status}`) });
     await s.say('الأربع دفعات ظهرت بلوطاتها ومورديها ورقم الاستلام. الطفلة والجليز مستنيين الفحص، والفلسبار والكراتين متاحين. ودفعة مستنية الفحص ماتتحملش على الخط');
-    await s.wait(8500);
+    await s.wait(6200);
     s.mark('done');
     return { lots: lots.length, statuses: lots.map((l) => `${l.item_code}:${l.status}`).sort() };
   });
