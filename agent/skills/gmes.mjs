@@ -87,3 +87,39 @@ async function untilApi(read, ok, timeout = 15_000) {
   throw new Error('the application does not show the booking: ' + JSON.stringify(last).slice(0, 300));
 }
 
+
+/**
+ * Releases the day's plan onto a line from the release plan (EXE2010): the "+" of the line and shift, the product, the
+ * quantity, create. Proven by the order the server now holds for that day and line.
+ */
+export async function releaseFromPlan(s, api, { itemCode, qty, line, explain, doneExplain }) {
+  await s.say(explain ?? 'بحوّل خطة النهارده لأمر شغل على الخط');
+  if (!(await s.page.evaluate(`location.hash === '#EXE2010'`))) await s.page.evaluate(`location.hash = '#EXE2010'`);
+  await s.page.waitFor(`!!document.querySelector('.mes-plan-row .mes-plan-cell button')`, { timeout: 20_000 });
+  const before = (await api('GET', '/api/work-orders')).length;
+  await s.click({ css: '.mes-plan-row .mes-plan-cell button' }, { expect: `!!document.querySelector('.eco-dialog select')` });
+  // the product is a native list: the agent points at it and picks the product (the open list is drawn by the system)
+  await s.click({ css: '.eco-dialog select' });
+  await s.page.evaluate(`(() => { const sel = document.querySelector('.eco-dialog select'); const o = [...sel.options].find((x) => x.text.startsWith(${JSON.stringify(itemCode)})); sel.value = o.value; sel.dispatchEvent(new Event('change', { bubbles: true })); sel.blur(); })()`);
+  await s.fill({ css: '.eco-dialog input[type=number]' }, qty);
+  await s.click({ text: 'إنشاء', within: '.eco-dialog button' }, { expect: `!document.querySelector('.eco-dialog')`, timeout: 15_000 });
+  const got = await untilApi(() => api('GET', '/api/work-orders'), (l) => l.length === before + 1);
+  const wo = got.find((w) => w.line_code === line) ?? got[got.length - 1];
+  await s.page.waitFor(`document.querySelectorAll('.mes-plan-wo').length > 0`, { timeout: 10_000 });
+  s.mark?.('proven', { what: 'released', wo: wo.code });
+  if (doneExplain) await s.say(doneExplain);
+  return wo;
+}
+
+/** Opens the line board (DSH5010) on a line and looks at it whole. Returns refresh(): the board reads the server again. */
+export async function watchBoard(s, { line, explain }) {
+  await s.say(explain ?? `بفتح لوحة خط ${line}`);
+  await s.page.evaluate(`location.hash = '#DSH5010'`);
+  await s.page.waitFor(`!!document.querySelector('.bd-pick') && document.querySelector('.bd-pick').options.length > 0`, { timeout: 20_000 });
+  const pick = `(() => { const sel = document.querySelector('.bd-pick'); sel.value = ${JSON.stringify(line)}; sel.dispatchEvent(new Event('change', { bubbles: true })); })()`;
+  await s.page.evaluate(pick);
+  await s.page.waitFor(`!!document.querySelector('.bd-kpis .bd-kpi')`, { timeout: 15_000 });
+  await s.page.evaluate('window.__agent && (__agent.ring(null))');
+  // the board refreshes itself every 30 s; between two bookings filmed seconds apart it is asked at once, the same request
+  return async () => { await s.page.evaluate(pick); await s.wait(350); };
+}

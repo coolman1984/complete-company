@@ -216,3 +216,34 @@ The scenes found **five real product gaps**, all fixed in their own repositories
 Still open, for the product plan (not needed for the film): GMES holds work on units only (a shade lot of tiles cannot
 be held: `hold.nothing`); second grade is a scrap reason, not a co-product in stock; Space Planner's shipment page
 still says "loaded wall by wall from the front wall to the doors" for spread loads.
+
+## 11. Second cut of film 2, and film 3 (owner's notes, 2026-10-01)
+
+**The owner's notes on film 2:** the camera zoomed in and out on every control the agent touched; the picture swam and
+tired the eye. Show whole screens, keep the camera still as long as possible, a very slight lean at most; choose screens
+where production MOVES (the plan becoming numbers, the counters and the progress filling up, the reports), a quick bit of
+recording on the line, the agent watching the line, then the container.
+
+**The camera now** (`composer-scenes.html`, `cameraPath`): the whole window is on screen; only a `focus` mark (an area to
+watch for seconds: a board, the 3D containers) leans in, by **4 % at most**, on a soft spring (~3 s); a `wide` mark returns.
+The window's entrance is softer (5° tilt, 96 % → 100 %). The agent's own cursor shows where it works; the camera does not chase it.
+
+**Film 2, second cut** (`shoot-line-day.mjs`, `cuts/line-day.json`, 152 s): Itqan runs inside the shoot's process on a
+**studio clock** (the scenario engine's clock), and the browser reads the same clock, so a shift of eight hours is filmed in
+a minute: 02 the plan becomes a work order (EXE2010, 1,440 m², load 90 %); 03 the line board (DSH5010) hour by hour,
+booked through the stations' API: 185, 195, 160 + 40 kiln cracks, the kiln stops at 10:05 (the board turns red) and runs
+again at 10:40, 120, 175 + 20 lamination, 200, 120 + 80 second grade, and the last hour (145) booked by the agent itself on
+the sorting station; the order completes (1,300 + 140 = 1,440); 04 the daily production, scrap and OEE reports (OEE 82.1 %);
+05 the container. Staged, and said so in the script: the clock, and who books the hourly output.
+
+**Film 3** (`shoot-month-end.mjs`, `sets/mizan-ceramic-quarter.mjs`, `cuts/month-end.json`, 96 s): Mizan (built) runs in the
+shoot's process on 30 September 2026; the demo ceramic company (invented) gets a quarter of history through Mizan's API
+(opening balances, raw materials on credit, production orders per 100 m², two invoices a month to three distributors,
+gas, power, maintenance, salaries, depreciation, collections). On camera: 06 the sales invoice to the distributor
+(1,300 m², VAT 14 %: INV-00018, 459,420 EGP); 07 the distributor's transfer applied to the oldest invoice (RCT-00010,
+4,727,808 EGP); 08 September's depreciation, the dashboard, the quarter's income statement (sales 50.3 M, net profit
+10.7 %) and the balanced balance sheet.
+
+**Found on the way, fixed in Itqan with tests and planted bugs:** the line board showed square metres as "pcs" and went
+blank the moment the order finished (now the order's unit, and the finished order stays with a "completed" chip); the
+release plan called a lot item on a routing a "serial flow".

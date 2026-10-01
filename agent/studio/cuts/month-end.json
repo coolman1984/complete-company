@@ -1,0 +1,241 @@
+{
+ "note": "Film 3: the invoice, the collection and the month-end review in Mizan, with the still camera of film 2. Marks are the agent's own events; checks are compared with the take's result before anything is rendered.",
+ "takes": [
+  "books"
+ ],
+ "checks": [
+  {
+   "take": "books",
+   "key": "invoice",
+   "equals": "INV-00018"
+  },
+  {
+   "take": "books",
+   "key": "invoiceTotal",
+   "equals": 45942000
+  },
+  {
+   "take": "books",
+   "key": "receiptAmount",
+   "equals": 472780800
+  },
+  {
+   "take": "books",
+   "key": "revenue",
+   "equals": 5033188000
+  },
+  {
+   "take": "books",
+   "key": "netProfit",
+   "equals": 540437924
+  }
+ ],
+ "intro": {
+  "kicker": "مصنع السيراميك التجريبي · شركة وهمية لأغراض العرض",
+  "title": "الوكيل الذكي",
+  "sub": "الفاتورة والتحصيل وإقفال الشهر، جوه برنامج الحسابات"
+ },
+ "scenes": [
+  {
+   "num": "06",
+   "title": "الفاتورة:\nمن المخزن للدفاتر",
+   "tags": [
+    "١٬٣٠٠ م²",
+    "ضريبة ١٤٪",
+    "٤٥٩٬٤٢٠ جنيه"
+   ],
+   "take": "books",
+   "start": "start",
+   "end": {
+    "type": "scene",
+    "n": 1
+   },
+   "window": "ميزان · برنامج الحسابات",
+   "label": "المشهد ٠٦ · الفاتورة",
+   "steps": [
+    {
+     "label": "العميل والصنف والكمية",
+     "done": {
+      "type": "ready",
+      "n": 0
+     }
+    },
+    {
+     "label": "اترحّلت للدفاتر",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 0
+     },
+     "title": "الفاتورة اترحّلت",
+     "text": "INV-00018 · ٤٥٩٬٤٢٠ جنيه شامل ضريبة القيمة المضافة",
+     "hold": 2800
+    }
+   ]
+  },
+  {
+   "num": "07",
+   "title": "التحصيل:\nالفلوس على الفاتورة",
+   "tags": [
+    "تحويل بنكي",
+    "الأقدم أولاً",
+    "٤٫٧ مليون جنيه"
+   ],
+   "take": "books",
+   "start": {
+    "type": "scene",
+    "n": 1
+   },
+   "end": {
+    "type": "scene",
+    "n": 2
+   },
+   "window": "ميزان · برنامج الحسابات",
+   "label": "المشهد ٠٧ · التحصيل",
+   "steps": [
+    {
+     "label": "العميل والمبلغ",
+     "done": {
+      "type": "say",
+      "n": 4
+     }
+    },
+    {
+     "label": "اتطبّق على الفاتورة الأقدم",
+     "done": {
+      "type": "proven",
+      "n": 1
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 1
+     },
+     "title": "التحصيل اتسجّل",
+     "text": "RCT-00010 · ٤٬٧٢٧٬٨٠٨ جنيه، وفاتورة INV-00007 اتقفلت",
+     "hold": 2800
+    }
+   ]
+  },
+  {
+   "num": "08",
+   "title": "إقفال الشهر\nوالقوائم المالية",
+   "tags": [
+    "إهلاك سبتمبر",
+    "قائمة الدخل",
+    "الميزانية"
+   ],
+   "take": "books",
+   "start": {
+    "type": "scene",
+    "n": 2
+   },
+   "end": "end",
+   "window": "ميزان · برنامج الحسابات",
+   "label": "المشهد ٠٨ · الإقفال والقوائم",
+   "steps": [
+    {
+     "label": "إهلاك سبتمبر",
+     "done": {
+      "type": "proven",
+      "n": 2
+     }
+    },
+    {
+     "label": "لوحة التحكم",
+     "done": {
+      "type": "say",
+      "n": 8
+     }
+    },
+    {
+     "label": "قائمة الدخل للربع",
+     "done": {
+      "type": "say",
+      "n": 9
+     }
+    },
+    {
+     "label": "الميزانية متوازنة",
+     "done": {
+      "type": "done",
+      "n": 0
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 2
+     },
+     "title": "الإهلاك اتسجّل",
+     "text": "قيد واحد لكل الأصول، والشهر مايتسجلش مرتين",
+     "hold": 2600
+    }
+   ]
+  }
+ ],
+ "stats": {
+  "title": "ربع سنة في أرقام",
+  "tiles": [
+   {
+    "value": 50.3,
+    "decimals": 1,
+    "label": "مليون جنيه مبيعات يوليو لسبتمبر"
+   },
+   {
+    "value": 10.7,
+    "decimals": 1,
+    "suffix": "%",
+    "label": "صافي ربح على المبيعات"
+   },
+   {
+    "value": 3,
+    "label": "مستندات اتسجلت قدامك: فاتورة وتحصيل وإهلاك"
+   }
+  ],
+  "line": "كل رقم هنا طالع من برنامج الحسابات نفسه بعد التشغيل، مش مكتوب بإيد"
+ },
+ "outro": {
+  "title": "الرحلة كلها جوه البرامج",
+  "sub": "من طلب العميل لحد القوائم المالية، بنفس الطريقة",
+  "chain": [
+   {
+    "label": "طلب العميل"
+   },
+   {
+    "label": "الخامات والـ MRP"
+   },
+   {
+    "label": "الشراء"
+   },
+   {
+    "label": "الإنتاج والجودة",
+    "done": true
+   },
+   {
+    "label": "الحاوية ثلاثية الأبعاد",
+    "done": true
+   },
+   {
+    "label": "الفاتورة والتحصيل",
+    "done": true
+   },
+   {
+    "label": "الإقفال والقوائم",
+    "done": true
+   }
+  ]
+ }
+}

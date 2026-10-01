@@ -1,0 +1,331 @@
+{
+ "note": "Film 2, second cut (owner's notes 2026-10-01): a still camera on whole screens where production moves (the plan, the line board hour by hour, the reports), then the container. Marks are the agent's own events in each take; checks are compared with each take's result before anything is rendered.",
+ "takes": [
+  "line",
+  "ship"
+ ],
+ "checks": [
+  {
+   "take": "line",
+   "key": "completed",
+   "equals": "1300"
+  },
+  {
+   "take": "line",
+   "key": "scrapped",
+   "equals": "140"
+  },
+  {
+   "take": "line",
+   "key": "status",
+   "equals": "completed"
+  },
+  {
+   "take": "line",
+   "key": "oee",
+   "equals": 82.1
+  },
+  {
+   "take": "ship",
+   "key": "count",
+   "equals": 2
+  }
+ ],
+ "intro": {
+  "kicker": "مصنع السيراميك التجريبي · شركة وهمية لأغراض العرض",
+  "title": "الوكيل الذكي",
+  "sub": "يوم كامل على خط البلاط، من الخطة لحد الحاوية"
+ },
+ "scenes": [
+  {
+   "num": "02",
+   "title": "الخطة بتبقى\nأمر شغل",
+   "tags": [
+    "١٬٤٤٠ م²",
+    "خط البلاط ١",
+    "الوردية أ"
+   ],
+   "take": "line",
+   "start": "start",
+   "end": {
+    "type": "scene",
+    "n": 1
+   },
+   "window": "إتقان · برنامج التصنيع",
+   "label": "المشهد ٠٢ · خطة الإنتاج",
+   "steps": [
+    {
+     "label": "خطة النهارده على الخط",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    },
+    {
+     "label": "الخامات اتصرفت بلوتاتها",
+     "done": {
+      "type": "say",
+      "n": 2
+     }
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 0
+     },
+     "title": "الخطة بقت أمر شغل",
+     "text": "١٬٤٤٠ م² على خط البلاط ١، والخط محمّل ٩٠٪ من طاقته",
+     "hold": 2600
+    }
+   ]
+  },
+  {
+   "num": "03",
+   "title": "الخط شغال\nوالوكيل بيتابع",
+   "tags": [
+    "ساعة بساعة",
+    "وقفة الفرن",
+    "١٬٣٠٠ م² سليم"
+   ],
+   "take": "line",
+   "start": {
+    "type": "scene",
+    "n": 1
+   },
+   "end": {
+    "type": "scene",
+    "n": 2
+   },
+   "window": "إتقان · لوحة الخط",
+   "label": "المشهد ٠٣ · الإنتاج",
+   "steps": [
+    {
+     "label": "من ٧ لـ ١٠: على الخطة",
+     "done": {
+      "type": "hour",
+      "n": 2
+     }
+    },
+    {
+     "label": "وقفة الفرن ٣٥ دقيقة",
+     "done": {
+      "type": "resumed",
+      "n": 0
+     }
+    },
+    {
+     "label": "من ١١ لـ ٢: بنعوّض",
+     "done": {
+      "type": "hour",
+      "n": 6
+     }
+    },
+    {
+     "label": "آخر ساعة من محطة الفرز",
+     "done": {
+      "type": "proven",
+      "n": 1
+     }
+    },
+    {
+     "label": "أمر الشغل اكتمل",
+     "done": {
+      "type": "proven",
+      "n": 2
+     }
+    }
+   ],
+   "badges": [
+    {
+     "at": {
+      "type": "stopped",
+      "n": 0
+     },
+     "text": "⏸ الخط واقف: حرارة الفرن",
+     "hold": 3200,
+     "tone": "warn"
+    },
+    {
+     "at": {
+      "type": "resumed",
+      "n": 0
+     },
+     "text": "▶ الخط رجع يشتغل",
+     "hold": 2400,
+     "tone": "info"
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 2
+     },
+     "title": "أمر الشغل اكتمل",
+     "text": "١٬٣٠٠ سليم + ١٤٠ فاقد = ١٬٤٤٠ م² المطلوبة بالظبط",
+     "hold": 3000
+    }
+   ]
+  },
+  {
+   "num": "04",
+   "title": "التقارير:\nكل رقم ليه سبب",
+   "tags": [
+    "الإنتاج اليومي",
+    "الفاقد بالسبب",
+    "كفاءة الخط ٨٢٫١٪"
+   ],
+   "take": "line",
+   "start": {
+    "type": "scene",
+    "n": 2
+   },
+   "end": "end",
+   "window": "إتقان · التقارير",
+   "label": "المشهد ٠٤ · التقارير",
+   "steps": [
+    {
+     "label": "الإنتاج اليومي",
+     "done": {
+      "type": "say",
+      "n": 18
+     }
+    },
+    {
+     "label": "الفاقد بالسبب",
+     "done": {
+      "type": "say",
+      "n": 19
+     }
+    },
+    {
+     "label": "كفاءة الخط",
+     "done": {
+      "type": "done",
+      "n": 0
+     }
+    }
+   ]
+  },
+  {
+   "num": "05",
+   "title": "الحاوية: الوزن\nبيحدد قبل المساحة",
+   "tags": [
+    "٢٣ بالتة",
+    "١٬٣٠٥ كجم للبالتة",
+    "حاويتين",
+    "توازن الحمولة"
+   ],
+   "take": "ship",
+   "start": "start",
+   "end": "end",
+   "window": "Space Planner · مخطط المساحات",
+   "label": "المشهد ٠٥ · الشحن",
+   "steps": [
+    {
+     "label": "مقاسات البالتة ووزنها",
+     "done": {
+      "type": "answer",
+      "n": 0
+     }
+    },
+    {
+     "label": "الحاويات اتحسبت بالوزن",
+     "done": {
+      "type": "say",
+      "n": 1,
+      "plus": 400
+     }
+    },
+    {
+     "label": "اتخزنت في مخطط المساحات",
+     "done": {
+      "type": "proven",
+      "n": 0
+     }
+    },
+    {
+     "label": "التحميل ثلاثي الأبعاد",
+     "done": {
+      "type": "done",
+      "n": 0
+     }
+    }
+   ],
+   "badges": [
+    {
+     "at": {
+      "type": "answer",
+      "n": 0
+     },
+     "text": "⚖ الوزن هو الحد: حاويتين مش واحدة",
+     "hold": 2600,
+     "tone": "info"
+    }
+   ],
+   "stamps": [
+    {
+     "at": {
+      "type": "proven",
+      "n": 0
+     },
+     "title": "اتخزنت في مخطط المساحات",
+     "text": "الأولى ٢٠ بالتة (٢٦٫١ طن من ٢٦٫٥) والتانية ٣، والاتنين متوازنين",
+     "hold": 2600
+    }
+   ]
+  }
+ ],
+ "stats": {
+  "title": "يوم على الخط في أرقام",
+  "tiles": [
+   {
+    "value": 1300,
+    "group": true,
+    "label": "م² فرز أول في لوط واحد S07-C2"
+   },
+   {
+    "value": 82.1,
+    "decimals": 1,
+    "suffix": "%",
+    "label": "كفاءة الخط، وفيها وقفة الفرن والفاقد"
+   },
+   {
+    "value": 2,
+    "label": "حاوية: الوزن اللي حدد مش المساحة"
+   }
+  ],
+  "line": "كل رقم هنا طالع من البرامج نفسها بعد التشغيل، مش مكتوب بإيد"
+ },
+ "outro": {
+  "title": "والجاي: باقي الرحلة",
+  "sub": "كل خطوة جوه البرنامج بتاعها، بنفس الطريقة",
+  "chain": [
+   {
+    "label": "طلب العميل"
+   },
+   {
+    "label": "الخامات والـ MRP"
+   },
+   {
+    "label": "الشراء"
+   },
+   {
+    "label": "الإنتاج والجودة",
+    "done": true
+   },
+   {
+    "label": "الحاوية ثلاثية الأبعاد",
+    "done": true
+   },
+   {
+    "label": "الشحن والفاتورة"
+   },
+   {
+    "label": "الإقفال والقوائم"
+   }
+  ]
+ }
+}
