@@ -28,7 +28,7 @@ function stack(over = {}) {
     if (path.startsWith('/api/integration/events?status=parked')) return data.parked.mizan;
     if (path === '/api/integration/events') return data.events.mizan;
     if (path === '/api/eco/peers') return data.peers.mizan;
-    if (path === '/api/mfg/gmes-wip') return data.wip;
+    if (path.startsWith('/api/mfg/gmes-wip')) return data.wip;
     if (path.startsWith('/api/reports/trial-balance')) return data.trial;
     if (path === '/api/items') return data.items;
     if (path === '/api/inventory/levels') return data.levels;

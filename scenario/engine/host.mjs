@@ -35,7 +35,7 @@ const postJson = async (base, path, body) => {
  */
 export async function host(opts) {
   const { root, out, password = 'Demo-2026!', startDay, hr: withHr = true } = opts;
-  rmSync(out, { recursive: true, force: true });
+  rmSync(out, { recursive: true, force: true, maxRetries: 10, retryDelay: 500 });   // Windows may still hold a file of the previous run for a moment
   mkdirSync(out, { recursive: true });
   const stops = [];
 

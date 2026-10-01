@@ -50,7 +50,7 @@ export async function verify({ mizan, gmes, hr, day, kpi }) {
   // ---- quantities and work in progress
   await safe('Quantities', 'GMES completed = Mizan received, per work order', async () => {
     const orders = await gmes('GET', '/api/work-orders');
-    const wip = await mizan('GET', '/api/mfg/gmes-wip');
+    const wip = await mizan('GET', '/api/mfg/gmes-wip?limit=100000');
     const byCode = new Map(wip.map((w) => [w.code, w]));
     const bad = [];
     let compared = 0;

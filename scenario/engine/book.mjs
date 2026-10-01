@@ -91,7 +91,8 @@ export function buildBook(opts = {}) {
     events,
     days,
     checks: [],   // filled by the verifier from its fixed invariants; a book may add its own
-    kpi_expected: { otif_domestic_key_accounts_pct: [70, 100], oee_fa_pct: [0, 100] },
+    // the first calibration of the engine's simple plant (units are made and shipped in a fixed daily order, with no smoothing): wide ranges, tightened as the engine learns
+    kpi_expected: { otif_domestic_key_accounts_pct: [70, 100], on_time_units_pct: [50, 100], fill_by_end_pct: [50, 100], oee_fa_pct: [0, 100] },
   };
 }
 

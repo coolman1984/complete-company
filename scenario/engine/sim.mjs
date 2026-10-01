@@ -9,7 +9,7 @@
 //   16:00 shipping    finished units are palletised, inspected, loaded and dispatched against the sales orders that are due
 //   17:00 billing     the invoices Mizan prepared from the deliveries are posted; customers pay on their own days
 // Nothing here reads a database; every number the verifier later checks was made by the applications.
-import { addDays, dateList, isWork, isBank, U as RND } from '../gen/lib.mjs';
+import { addDays, dateList, diffDays, isWork, isBank, U as RND } from '../gen/lib.mjs';
 import { U, trackingOf } from './setup.mjs';
 
 const cents = (x) => Math.round(x * 100);
@@ -43,7 +43,7 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
     cycles: {}, sos: [], arrivals: [], wos: new Map(), lots: {}, plain: {}, semi: {}, fin: {}, loads: {}, receivables: [], serialN: {}, sealN: 0, truckN: 0, boxN: 0,
     counters: { orders: 0, orderUnits: 0, sop: 0, po: 0, receipts: 0, lots: 0, lotsRejected: 0, released: 0, unitsStarted: 0, unitsDone: {}, scans: 0, fails: 0, repairs: 0, scrapped: 0,
       shipped: 0, shipments: 0, containers: 0, invoices: 0, payments: 0, shortages: 0, creditOverrides: 0, lateShipUnits: 0 },
-    daily: [],
+    daily: [], lateBy: {}, shortWhy: {}, noSupplier: {},
   };
   const bump = (k, n = 1) => { S.counters[k] += n; };
   const mainWh = (await mz('GET', '/api/inventory/warehouses')).find((w) => w.is_default);
@@ -179,6 +179,8 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
       (groups[sup] ??= []).push(r);
     }
     let n = 0;
+    for (const r of reqs) { const c = codeOfMz[r.item_id]; if (!itemOf[c]?.supplier) S.noSupplier[c ?? `item ${r.item_id}`] = (S.noSupplier[c ?? `item ${r.item_id}`] ?? 0) + 1; }
+    if (process.env.BUYER_DEBUG) say(`    buyer ${day}: ${reqs.length} in window of ${openReqs.length} open: ${reqs.map((r) => codeOfMz[r.item_id]).join(',')}`);
     for (const [sup, rows] of Object.entries(groups)) {
       const s = suppOf[sup];
       const po = await mz('POST', '/api/purchase-requisitions/convert', { ids: rows.map((r) => r.id), supplierId: ids.supplier[sup], date: day, ...(s.currency === 'USD' ? { currency: 'USD' } : {}) });
@@ -254,7 +256,7 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
     while (w.started < w.planned && currentShift(ls)) {
       const shift = currentShift(ls);
       const r = await ready(w, lines);
-      if (!r.ok) { bump('shortages'); w.short = r.why; break; }
+      if (!r.ok) { bump('shortages'); w.short = r.why; S.shortWhy[r.why] = (S.shortWhy[r.why] ?? 0) + 1; break; }
       const serial = nextSerial(w.item);
       // commit the material this unit takes
       for (const l of lines) {
@@ -350,7 +352,11 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
           bump('containers');
         }
         p.l.shipped += p.n; shipped += p.n; bump('shipped', p.n);
-        if (day > p.l.requested) bump('lateShipUnits', p.n);
+        if (day > p.l.requested) {
+          bump('lateShipUnits', p.n);
+          const late = diffDays(day, p.l.requested), bucket = late <= 2 ? '1-2' : late <= 7 ? '3-7' : late <= 14 ? '8-14' : '15+';
+          S.lateBy[`${so.channel} ${bucket} days`] = (S.lateBy[`${so.channel} ${bucket} days`] ?? 0) + p.n;
+        }
       }
       bump('shipments');
       }
@@ -413,7 +419,10 @@ export async function play({ h, book, ids, g, people, pump, log, say }) {
   }
   await pump();
   const open = S.sos.reduce((a, so) => a + so.lines.reduce((b, l) => b + (l.qty - l.shipped), 0), 0);
-  log(true, 'the days are played', `${S.daily.length} days, ${S.counters.orders} orders, ${S.counters.shipped} units shipped, ${open} units still open`);
+  log(true, 'the days are played', `${S.daily.length} days, ${S.counters.orders} orders, ${S.counters.shipped} units shipped, ${open} units still open (${S.sos.reduce((a, so) => a + so.lines.reduce((b, l) => b + (l.requested <= to ? l.qty - l.shipped : 0), 0), 0)} of them were due inside the window)`);
+  // what is overdue at the end: lines whose requested day is inside the window and are not shipped (the rest is demand for after the window)
+  const overdue = S.sos.reduce((a, so) => a + so.lines.reduce((b, l) => b + (l.requested <= to ? l.qty - l.shipped : 0), 0), 0);
+  const due = S.sos.reduce((a, so) => a + so.lines.reduce((b, l) => b + (l.requested <= to ? l.qty : 0), 0), 0);
   const wos = [...S.wos.values()].map((w) => [w.code, w.item, w.line, w.planned, w.started, w.done, w.scrapped, w.closed ? 'closed' : 'open', w.short ?? '', w.prodDate, w.due]);
-  return { counters: S.counters, daily: S.daily, openUnits: open, wos, stock: { fin: Object.fromEntries(Object.entries(S.fin).map(([k, v]) => [k, v.length])), semi: Object.fromEntries(Object.entries(S.semi).map(([k, v]) => [k, v.length])) } };
+  return { counters: S.counters, daily: S.daily, openUnits: open, overdueUnits: overdue, dueUnits: due, lateBy: S.lateBy, shortWhy: S.shortWhy, wos, stock: { fin: Object.fromEntries(Object.entries(S.fin).map(([k, v]) => [k, v.length])), semi: Object.fromEntries(Object.entries(S.semi).map(([k, v]) => [k, v.length])) } };
 }

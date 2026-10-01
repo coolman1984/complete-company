@@ -26,6 +26,20 @@ let failed = 0;
 const log = (ok, what, detail = '') => { const l = `  ${ok ? 'ok  ' : 'FAIL'} ${what}${detail ? '  ' + detail : ''}`; console.log(l); lines.push(l); if (!ok) failed++; };
 const say = (t) => { console.log(t); lines.push(t); };
 
+/** Pumps until both outboxes are fully taken by their peers (bounded), so a check never reads a half-delivered day. */
+async function drain(pump, mz, gm) {
+  for (let round = 0; round < 400; round++) {
+    let behind = 0;
+    for (const call of [mz, gm]) {
+      const newest = (await call('GET', '/api/integration/events')).reduce((m, e) => Math.max(m, e.seq ?? 0), 0);
+      behind += (await call('GET', '/api/eco/peers')).filter((p) => p.active && p.cursor < newest).length;
+    }
+    if (!behind) return round;
+    await pump(1);
+  }
+  throw new Error('the applications never finished exchanging their events');
+}
+
 say(`Nile Vision scenario ${book.meta.window.from}..${book.meta.window.to}, scale ${book.meta.scale}, models ${book.meta.models.join(',')}`);
 const h = await host({ root, out, company: { name: book.company.name, code: book.company.code }, startDay: book.meta.window.from, hr: withHr });
 let result = null;
@@ -42,10 +56,12 @@ try {
   await pump();
   if (!flag('--setup-only')) {
     result = await play({ h, book, ids, g, people, pump, log, say });
+    await drain(pump, mz, gm);   // everything each side has said has reached the other before anyone compares them
     if (people) result.people = { ...people.stats, refusedCount: people.refused.length, refused: people.refused.slice(0, 60) };
     say('verify');
     const c = result.counters;
-    const kpi = c.shipped > 0 ? [{ name: 'units shipped on or before the requested day are within the book\'s expected share (%)', value: Math.round(1000 * (1 - c.lateShipUnits / c.shipped)) / 10, range: book.kpi_expected.otif_domestic_key_accounts_pct }] : [];
+    const kpi = c.shipped > 0 ? [{ name: 'units shipped on or before the requested day are within the book\'s expected share (%)', value: Math.round(1000 * (1 - c.lateShipUnits / c.shipped)) / 10, range: book.kpi_expected.on_time_units_pct }] : [];
+    if (result.dueUnits > 0) kpi.push({ name: 'units due inside the window were shipped by its end (%) (the plant may be short of material: see shortWhy)', value: Math.round(1000 * (1 - result.overdueUnits / result.dueUnits)) / 10, range: book.kpi_expected.fill_by_end_pct });
     const report = await verify({ mizan: mz, gmes: gm, hr, day: h.clock.day(), kpi });
     printReport(report);
     failed += report.checks.filter((c) => !c.ok).length;
