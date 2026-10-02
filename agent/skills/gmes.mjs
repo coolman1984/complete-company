@@ -123,3 +123,24 @@ export async function watchBoard(s, { line, explain }) {
   // the board refreshes itself every 30 s; between two bookings filmed seconds apart it is asked at once, the same request
   return async () => { await s.page.evaluate(pick); await s.wait(350); };
 }
+
+/** Opens an Itqan screen by its code and waits for the control or the words that show it is ready. */
+export async function goTo(s, code, { explain, ready }) {
+  if (explain) await s.say(explain);
+  await s.page.evaluate(`location.hash = '#${code}'`);
+  await s.page.waitFor(ready ?? `location.hash === '#${code}' && !!document.querySelector('.eco-screen, .mes-screen, table, [role=grid], .eco-grid')`, { timeout: 20_000 });
+}
+
+/** Runs the material planning from PLN2010 with its button. Proven by the new run Itqan lists (orders, requisitions, errors). */
+export async function runPlanning(s, api, { explain, doneSay }) {
+  await goTo(s, 'PLN2010', { explain, ready: `location.hash === '#PLN2010' && [...document.querySelectorAll('button')].some((b) => b.innerText.includes('شغّل التخطيط الآن'))` });
+  await s.wait(1500);
+  const before = (await api('GET', '/api/pln/runs')).length;
+  await s.click({ text: 'شغّل التخطيط الآن', exact: false, within: 'button' });
+  const runs = await untilApi(() => api('GET', '/api/pln/runs'), (l) => l.length === before + 1);
+  const run = runs[0];
+  await s.page.waitFor(`document.body.innerText.includes(${JSON.stringify(run.code)})`, { timeout: 15_000 });
+  s.mark?.('proven', { what: 'mrp', run: run.code, orders: run.stats.plannedOrders, requisitions: run.stats.requisitions, errors: run.stats.errors });
+  if (doneSay) await s.say(doneSay(run));
+  return run;
+}

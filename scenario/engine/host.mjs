@@ -31,6 +31,7 @@ const postJson = async (base, path, body) => {
 /**
  * opts: { root (the folder holding the five repositories), out (fresh output folder), company: {name, code}, password, startDay,
  *         hr: boolean, plantTz }
+ * Optional: mizanWeb (the built screens of Mizan to serve, for a film), locale ('en' | 'ar': the language both applications start in).
  * Returns { urls, logins, company, clients: {mizan, gmes, hr}, clock, stop() }.
  */
 export async function host(opts) {
@@ -45,12 +46,12 @@ export async function host(opts) {
   const { buildApp: buildMizan } = await import(url(join(mizanDir, 'app.js')));
   const { loadConfig } = await import(url(join(mizanDir, 'config.js')));
   const clock = makeClock(startDay, '00:30');
-  const mizan = await buildMizan(loadConfig({ dataDir: join(out, 'mizan'), dbFile: join(out, 'mizan', 'mizan.db'), logLevel: 'silent', webDir: null, host: '127.0.0.1', port: 0 }), undefined, { clock });
+  const mizan = await buildMizan(loadConfig({ dataDir: join(out, 'mizan'), dbFile: join(out, 'mizan', 'mizan.db'), logLevel: 'silent', webDir: opts.mizanWeb ?? null, host: '127.0.0.1', port: 0 }), undefined, { clock });
   await mizan.http.listen({ host: '127.0.0.1', port: 0 });
   const mizanUrl = `http://127.0.0.1:${mizan.http.server.address().port}`;
   stops.push(() => mizan.http.close());
   await postJson(mizanUrl, '/api/setup', { company: { name: opts.company.name, baseCurrency: 'EGP', moneyScale: 2 }, fiscalYearStart: `${startDay.slice(0, 4)}-01-01`,
-    admin: { username: 'admin', displayName: 'Admin', password }, locale: 'en', seedChartOfAccounts: true, vatRateBp: 1400 });
+    admin: { username: 'admin', displayName: 'Admin', password }, locale: opts.locale ?? 'en', seedChartOfAccounts: true, vatRateBp: 1400 });
   const mz = client(mizanUrl, 'mizan_sid', () => ['POST', '/api/auth/login', { username: 'admin', password }]);
   await mz('POST', '/api/auth/login', { username: 'admin', password });
   const company = (await mz('GET', '/api/eco/company')).companyId;
@@ -67,7 +68,7 @@ export async function host(opts) {
   await gmes.http.listen({ host: '127.0.0.1', port: 0 });
   const gmesUrl = `http://127.0.0.1:${gmes.http.server.address().port}`;
   stops.push(() => gmes.close());
-  await postJson(gmesUrl, '/api/setup', { login: 'admin', name: 'Admin', password, language: 'en' });
+  await postJson(gmesUrl, '/api/setup', { login: 'admin', name: 'Admin', password, language: opts.locale ?? 'en' });
   const gm = client(gmesUrl, 'gmes_sid', () => ['POST', '/api/auth/login', { login: 'admin', password }]);
   await gm('POST', '/api/auth/login', { login: 'admin', password });
 

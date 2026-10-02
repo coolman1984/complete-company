@@ -133,3 +133,33 @@ export async function openReport(s, menuName, path, { explain, ready, range } = 
   }
   await s.page.waitFor(ready ?? `document.querySelectorAll('table tbody tr').length > 1`, { timeout: 20_000 });
 }
+
+/** Opens a Mizan screen by its address (the screens are single-page: this is what following a link does). */
+export async function goTo(s, path, { explain, ready }) {
+  if (explain) await s.say(explain);
+  await s.page.evaluate(`history.pushState({}, '', ${JSON.stringify(path)}); dispatchEvent(new PopStateEvent('popstate'))`);
+  await s.page.waitFor(ready ?? `location.pathname === ${JSON.stringify(path)}`, { timeout: 20_000 });
+}
+
+/**
+ * Turns open requisitions into a purchase order from the requisitions screen: tick them, "convert", create the draft, then
+ * "save and approve". Proven by the approved order Mizan returns (its lines, one per requisition, linked back to them).
+ */
+export async function convertToPurchaseOrder(s, api, { numbers, supplierNote, explain, doneSay }) {
+  await s.say(explain);
+  await goTo(s, '/purchasing/requisitions', { ready: `location.pathname === '/purchasing/requisitions' && document.querySelectorAll('input[type=checkbox]').length > 1` });
+  const before = (await api('GET', '/api/purchase-orders')).length;
+  for (const n of numbers) await s.click({ css: `input[aria-label="${n}"]` }, { expect: `document.querySelector('input[aria-label="${n}"]').checked` });
+  await s.click({ text: 'تحويل إلى أمر شراء', exact: false, within: 'button' }, { expect: `!!document.querySelector('[role=dialog]')` });
+  await s.wait(1400);   // the dialog shows the supplier Mizan proposes from the items
+  await s.click({ text: 'إنشاء أمر', exact: false, within: '[role=dialog] button' }, { expect: `/^\\/purchasing\\/orders\\/\\d+\\/edit$/.test(location.pathname)`, timeout: 20_000 });
+  await s.page.waitFor(`document.querySelectorAll('table tbody tr').length >= ${numbers.length}`, { timeout: 15_000 });
+  await s.wait(1800);   // the draft with one line per requisition: let it be read
+  if (supplierNote) await s.say(supplierNote);
+  await s.click({ text: 'حفظ واعتماد', within: 'button' }, { expect: `/^\\/purchasing\\/orders\\/\\d+$/.test(location.pathname)`, timeout: 20_000 });
+  const id = Number((await s.page.evaluate('location.pathname')).split('/').pop());
+  const po = await until(() => api('GET', `/api/purchase-orders/${id}`), (p) => p && p.status === 'open' && p.lines.length === numbers.length, 'an approved purchase order');
+  s.mark?.('proven', { what: 'purchase order', number: po.number, lines: po.lines.length, total: po.total ?? null });
+  if (doneSay) await s.say(doneSay(po));
+  return po;
+}

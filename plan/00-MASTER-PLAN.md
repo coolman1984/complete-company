@@ -14,6 +14,7 @@ it: every work package says **what** to build, **where**, **how**, **in which or
 | `20-GMES.md` | Work in `GMES` |
 | `30-HR.md` | Work in `hr-system` |
 | `40-SPACE-PLANNER.md` | Work in `3D-Modeling` |
+| `80-MISSING-SCREENS.md` | Building any missing screen (inventory and the four waves) |
 | `50-PACKAGE-AND-SCENARIO.md` | Work in `complete-company` (launcher, portal, pairing, scenario engine, verifier) |
 | `../scenario/book.json`, `../scenario/STORYBOARD.md` | Any seed, scenario or verifier work |
 | `../research/TV_INDUSTRY_REFERENCE.md` | Any number, rule or process step you are unsure about |
