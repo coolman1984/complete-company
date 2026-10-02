@@ -1,0 +1,5 @@
+item,component,qty_per,op,scan
+RC-1,PCB-R,1,ASM,lot
+RC-1,SHELL,1,ASM,lot
+RC-1,BATCOV,1,ASM,none
+RC-1,CTN-R,1,PACK,none

@@ -78,6 +78,23 @@ if ((Test-Path -LiteralPath (Join-Path (Split-Path -Parent (Split-Path -Parent $
   if ($LASTEXITCODE -ne 0) { $mini | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" } }
 } else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
 
+Write-Host '== master-data importer (CSV folder -> Mizan and Itqan)'
+$it = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'import\masters.test.mjs') 2>&1
+Check ($LASTEXITCODE -eq 0) 'the importer names every mistake with its file and line, and accepts the templates'
+$gmesRoot = Join-Path (Split-Path -Parent $script:PackageRoot) 'GMES'
+if ((Test-Path -LiteralPath (Join-Path $gmesRoot 'node_modules')) -and (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $script:PackageRoot) 'Accounting-sys\apps\server\dist\app.js'))) {
+  Push-Location (Join-Path $gmesRoot 'apps\mes-server')
+  try { $smoke = & (Get-Command node).Source --disable-warning=ExperimentalWarning --import tsx (Join-Path $script:PackageRoot 'import\apply-smoke.mjs') 2>&1 } finally { Pop-Location }
+  Check ($smoke -match 'IMPORT SMOKE: PASSED') 'the importer enters the templates in the real applications, and running it again creates nothing'
+  if ($smoke -notmatch 'IMPORT SMOKE: PASSED') { $smoke | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" } }
+} else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
+Write-Host '== readiness check (is an installation ready for real data?)'
+if ((Test-Path -LiteralPath (Join-Path $gmesRoot 'node_modules')) -and (Test-Path -LiteralPath (Join-Path (Split-Path -Parent $script:PackageRoot) 'Accounting-sys\apps\server\dist\app.js'))) {
+  Push-Location (Join-Path $gmesRoot 'apps\mes-server')
+  try { $ready = & (Get-Command node).Source --disable-warning=ExperimentalWarning --import tsx (Join-Path $script:PackageRoot 'ready\check-smoke.mjs') 2>&1 } finally { Pop-Location }
+  Check ($ready -match 'READY SMOKE: PASSED') 'an installation on a demonstration password is not ready; one with its own password, paired, is ready'
+  if ($ready -notmatch 'READY SMOKE: PASSED') { $ready | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" } }
+} else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
 Write-Host ''
 if ($failures.Count) { Write-Host "$($failures.Count) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host 'ALL GREEN' -ForegroundColor Green

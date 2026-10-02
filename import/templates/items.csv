@@ -1,0 +1,6 @@
+code,name_en,name_ar,type,uom,tracking,procurement,lead_time_days,moq,lot_rule,lot_size,safety_stock,supplier_code,purchase_price,sale_price,line
+RC-1,Example remote control,جهاز تحكم,finished,EA,serial,make,1,0,lot_for_lot,0,0,,,250,L1
+PCB-R,Control board,لوحة التحكم,raw,EA,lot,buy,20,500,multiple,500,100,S-ELEC,40,,
+SHELL,Plastic shell,غلاف,raw,EA,lot,buy,10,1000,multiple,1000,200,S-ELEC,6,,
+BATCOV,Battery cover,غطاء البطارية,raw,EA,none,buy,10,1000,multiple,1000,200,S-ELEC,2,,
+CTN-R,Carton,كرتونة,packaging,EA,none,buy,5,500,lot_for_lot,0,0,S-PACK,3,,

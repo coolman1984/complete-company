@@ -1,0 +1,7 @@
+code,type,parent,name,capacity_per_shift,crew
+P1,plant,,Example plant,,
+A-ASM,area,P1,Assembly hall,,
+L1,line,A-ASM,Assembly line 1,400,
+L1-ASM,station,L1,Assembly,,2
+L1-TEST,station,L1,Function test,,1
+L1-PACK,station,L1,Packing,,1

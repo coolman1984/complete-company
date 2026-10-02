@@ -1,0 +1,4 @@
+kind,code,name,payment_terms_days,credit_limit
+supplier,S-ELEC,Example Electronic Components Ltd,30,
+supplier,S-PACK,Example Packaging Co,15,
+customer,C-RETAIL,Example Retail Chain,45,500000

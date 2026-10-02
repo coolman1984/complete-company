@@ -1,0 +1,4 @@
+item,seq,op,name,kind,cycle_s,mandatory
+RC-1,10,ASM,"Assembly (board, shell and cover)",work,40,
+RC-1,20,TEST,Function test,test,20,
+RC-1,30,PACK,Packing,pack,15,
