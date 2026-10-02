@@ -1,4 +1,12 @@
 kind,code,name,payment_terms_days,credit_limit
 supplier,S-CLAY,Aswan Clay & Minerals,30,
-supplier,S-GLZ,Frit & Glaze Supplies,30,
-customer,C-DELTA,Delta Building Materials (distributor),45,2000000
+supplier,S-GLZ,Frit & Glaze Supplies,45,
+supplier,S-CTN,Delta Carton Works,15,
+customer,C-DELTA,Delta Building Materials,30,9000000
+customer,C-CAIRO,Cairo Home Centers,45,14000000
+customer,C-ALEX,Alexandria Tiles House,30,7000000
+customer,C-UPPER,Upper Egypt Builders Supply,60,6000000
+customer,C-CANAL,Canal Ceramics Trading,30,6000000
+customer,C-NILE,Nile Delta Contractors,45,8000000
+customer,C-GIZA,Giza Interiors Retail,15,4000000
+customer,C-RSEA,Red Sea Developments,60,20000000

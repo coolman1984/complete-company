@@ -216,7 +216,7 @@ P7:  WP-X1 (DPAPI + keys) ──► WP-X2 (pinned TLS) ∥ WP-X3 (backups/health
 
 **Critical path to the demo:** WP-G0 → WP-C1 → WP-M1/M2 → WP-M3 → WP-G1 → WP-G2 → WP-G4/G5 → WP-H1 → WP-H2/H3 →
 WP-P3 → WP-P4. P5 (layout), WP-H6 (payroll) and P7 can follow the first demo without blocking it; the scenario
-engine books payroll through Mizan's existing payroll module until WP-H6 lands (see 50 §4.6).
+engine books payroll through HR's own payroll (WP-H6, built 2026-10-02; see 50 §4.6).
 
 ### 4.3 Suggested calendar (agent sessions; parallel lanes per repository)
 
@@ -317,5 +317,5 @@ Session checklist for the implementer: (1) `git status` clean or explained; (2) 
 | Scenario too slow (serial scanning ~500k calls) | Scenario engine runs apps in-process with injected HTTP (`app.http.inject`) and a controlled clock; routing for the simulation uses 6 scan points; build target < 20 min, cached artefact for demos |
 | Expert finds an inconsistent number | `book.json#checks` + verifier reconciles quantities, values, headcount, cash across apps; KPIs land near `kpi_expected` |
 | Mizan moving-average vs standard cost | Keep moving average for stock (Mizan rule); show standard cost + variances in the manufacturing report; the storyboard explains it |
-| HR payroll gate not passed in time | Scenario books payroll via Mizan's existing payroll module until WP-H6; the verifier marks it "interim" |
+| HR payroll gate not passed in time | Lifted by the owner on 2026-10-02 for the trial on one laptop (sample data only); WP-H6 is built, real salaries wait for an accountant's check of one month |
 | LAN security | P7 before any customer install beyond one PC |

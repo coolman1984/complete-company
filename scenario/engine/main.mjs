@@ -1,5 +1,5 @@
 // The scenario engine: hosts the applications, enters the book's master data, plays the days, saves what happened.
-//   node --disable-warning=ExperimentalWarning --import tsx <this file> [--from D] [--to D] [--scale S] [--models A,B] [--out DIR] [--no-hr] [--setup-only]
+//   node --disable-warning=ExperimentalWarning --import tsx <this file> [--book electronics|ceramic] [--from D] [--to D] [--scale S] [--models A,B] [--out DIR] [--no-hr] [--setup-only]
 // The working directory must be GMES/apps/mes-server (tsx is installed there); scripts/scenario.ps1 does that.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
@@ -8,6 +8,7 @@ import { pair } from '../../portal/pair.mjs';
 import { verify, printReport } from '../verify/verify.mjs';
 import { backupAll } from '../../portal/backup.mjs';
 import { buildBook } from './book.mjs';
+import * as CERAMIC from '../gen/ceramic.mjs';
 import { host, rootOf } from './host.mjs';
 import { setupMizan, setupGmes } from './setup.mjs';
 import { setupHr } from './hr.mjs';
@@ -17,8 +18,11 @@ const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? proces
 const flag = (n) => process.argv.includes(n);
 const here = dirname(fileURLToPath(import.meta.url));
 const root = rootOf(here);
-const book = buildBook({ from: arg('--from'), to: arg('--to'), scale: arg('--scale') ? Number(arg('--scale')) : undefined, models: arg('--models')?.split(',') });
-const out = resolve(arg('--out') ?? join(root, 'complete-company', 'scenario', 'out', 'nile-vision'));
+const bookName = arg('--book', 'electronics');
+const ceramic = bookName === 'ceramic';
+const book = ceramic ? CERAMIC.buildCeramicBook({ from: arg('--from'), to: arg('--to'), models: arg('--models')?.split(',') })
+  : buildBook({ from: arg('--from'), to: arg('--to'), scale: arg('--scale') ? Number(arg('--scale')) : undefined, models: arg('--models')?.split(',') });
+const out = resolve(arg('--out') ?? join(root, 'complete-company', 'scenario', 'out', ceramic ? 'demo-ceramics' : 'nile-vision'));
 const withHr = !flag('--no-hr');
 const started = Date.now();
 const lines = [];
@@ -40,7 +44,7 @@ async function drain(pump, mz, gm) {
   throw new Error('the applications never finished exchanging their events');
 }
 
-say(`Nile Vision scenario ${book.meta.window.from}..${book.meta.window.to}, scale ${book.meta.scale}, models ${book.meta.models.join(',')}`);
+say(`${book.company.name} scenario ${book.meta.window.from}..${book.meta.window.to}, scale ${book.meta.scale}, models ${book.meta.models.join(',')}`);
 const h = await host({ root, out, company: { name: book.company.name, code: book.company.code }, startDay: book.meta.window.from, hr: withHr });
 let result = null;
 try {
@@ -52,17 +56,18 @@ try {
   if (!paired.ok) throw new Error('pairing failed');
   await pump();
   const g = await setupGmes({ gm, book, log });
-  const people = withHr ? await setupHr({ h, hr, gm, g, book, pump, log }) : null;
+  const people = withHr ? await setupHr({ h, hr, gm, g, book, pump, log, model: ceramic ? CERAMIC : undefined }) : null;
   await pump();
   if (!flag('--setup-only')) {
     result = await play({ h, book, ids, g, people, pump, log, say });
     await drain(pump, mz, gm);   // everything each side has said has reached the other before anyone compares them
-    if (people) result.people = { ...people.stats, refusedCount: people.refused.length, refused: people.refused.slice(0, 60) };
+    if (people) result.people = { ...people.stats, refusedCount: people.refused.length, refused: people.refused.slice(0, 60), payrolls: people.payrolls };
     say('verify');
     const c = result.counters;
     const kpi = c.shipped > 0 ? [{ name: 'units shipped on or before the requested day are within the book\'s expected share (%)', value: Math.round(1000 * (1 - c.lateShipUnits / c.shipped)) / 10, range: book.kpi_expected.on_time_units_pct }] : [];
     if (result.dueUnits > 0) kpi.push({ name: 'units due inside the window were shipped by its end (%) (the plant may be short of material: see shortWhy)', value: Math.round(1000 * (1 - result.overdueUnits / result.dueUnits)) / 10, range: book.kpi_expected.fill_by_end_pct });
-    const report = await verify({ mizan: mz, gmes: gm, hr, day: h.clock.day(), kpi });
+    const report = await verify({ mizan: mz, gmes: gm, hr, day: h.clock.day(), kpi, payrolls: people?.payrolls });
+    for (const r of people?.payrolls ?? []) say(`  payroll ${r.period} run ${r.run}: ${r.headcount} people, gross ${(r.totals.gross_earnings + r.totals.overtime + r.totals.night_allowance) / 100}, tax ${r.totals.salary_tax / 100}, net ${r.totals.net_payable / 100} EGP, ${r.status}, accounting: ${r.delivery}`);
     printReport(report);
     failed += report.checks.filter((c) => !c.ok).length;
     if (!report.ok) {   // what each side refused, in full: the first thing to read when a check fails

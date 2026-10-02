@@ -9,7 +9,7 @@
 //   every evening GMES closes the production day: the labour facts go to HR
 import { createHash } from 'node:crypto';
 import { addDays, dateList, isWork, dow, HOLIDAYS, U as RND } from '../gen/lib.mjs';
-import * as P from '../gen/people.mjs';
+import * as P0 from '../gen/people.mjs';
 import { client } from './client.mjs';
 
 const uuid5 = (ns, name) => {
@@ -21,7 +21,9 @@ const uuid5 = (ns, name) => {
 const WORKER = { regular: 'Regular', agency_temp: 'Agency', fixed_term: 'Fixed-term' };
 const ETYPE = { regular: 'regular', agency_temp: 'agency', fixed_term: 'fixed_term' };
 
-export async function setupHr({ h, hr, gm, g, book, pump, log }) {
+/** `model`: the people model of the book (a module with MOVEMENTS, HIRING, OT_PLAN, activeOn, absentOn, onLeave, unexcused, workedC, C_WINDOW); the electronics plant's by default. */
+export async function setupHr({ h, hr, gm, g, book, pump, log, model }) {
+  const P = model ?? P0;
   const { from, to } = book.meta.window;
   const people = book.people;
   const company = h.company;
@@ -45,7 +47,8 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
   // ---------------------------------------------------------------- organisation
   const units = await hr('GET', '/api/org_unit');
   const companyUnit = units.find((u) => u.type === 'company');
-  const site = await put(hr, 'org_unit', 'SITE-10R', { type: 'site', name: '10th of Ramadan plant', parent_id: companyUnit.id, attrs: {} });
+  const siteOf = people.site ?? { code: 'SITE-10R', name: '10th of Ramadan plant' };
+  const site = await put(hr, 'org_unit', siteOf.code, { type: 'site', name: siteOf.name, parent_id: companyUnit.id, attrs: {} });
   const bu = await put(hr, 'org_unit', 'BU-OPS', { type: 'business_unit', name: 'Operations', parent_id: site.id, attrs: {} });
   const unit = {};
   const ordered = [...people.org].filter((o) => o.kind !== 'company');
@@ -61,10 +64,11 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
   const shift = {};
   for (const s of [...book.shifts, { code: 'ADM', name: 'Office day', start: '08:00', end: '16:00', rest_min: 60 }]) shift[s.code] = await put(hr, 'shift', s.code, { name: s.name, start_time: s.start, end_time: s.end, break_minutes: s.rest_min, grace_minutes: 10 });
   const holidays = Object.keys(HOLIDAYS).sort().join(',');
-  const cal = await put(hr, 'work_calendar', 'PLANT', { name: 'Plant calendar (Friday rest, public holidays)', rest_days: 'FRI', holidays });
+  const cal = await put(hr, 'work_calendar', 'PLANT', { name: people.calendar_name ?? 'Plant calendar (Friday rest, public holidays)', rest_days: 'FRI', holidays });
   const skill = {};
   for (const s of people.skills) skill[s.code] = await put(hr, 'skill', s.code, { name: s.name.slice(0, 200), category: s.mandatory_for ? 'Safety' : 'Operations', validity_months: s.validity_months });
-  const course = await put(hr, 'course', 'ESD-STATION', { name: 'ESD + station induction (3 days)', skill_id: null, grants_level: null, validity_months: 12, duration_hours: 24, mandatory_for: 'all_production', onboarding_kind: 'esd_training' });
+  const courseOf = people.course ?? { code: 'ESD-STATION', name: 'ESD + station induction (3 days)', onboarding_kind: 'esd_training' };
+  const course = await put(hr, 'course', courseOf.code, { name: courseOf.name, skill_id: null, grants_level: null, validity_months: 12, duration_hours: 24, mandatory_for: 'all_production', onboarding_kind: courseOf.onboarding_kind });
   const leaveType = await put(hr, 'leave_type', 'ANNUAL', { name: 'Annual leave', paid: 1, annual_days: 21, carry_over_days: 6, active: 1 });
   await hr('PUT', '/api/overtime/policy', { max_daily_minutes_incl_ot: 600, max_weekly_ot_minutes: 720, max_monthly_ot_minutes: 2400 });
   const agency = await put(hr, 'agency', 'S-SMS', { name: 'Sharqia Manpower Services', contact: 'agency desk', fee_percent: 22, active: 1 });
@@ -82,6 +86,33 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
       home_site_id: site.id, position_id: pos[e.position]?.id ?? null, manager_id: manager });
     hrCode[e.code] = e.code; created.add(e.code); ver[e.code] = r.ver; stats.employees++;
     return r;
+  }
+  // ---------------------------------------------------------------- pay (SAMPLE salaries from the book): a profile per employee, the month's adjustments, the monthly run
+  const profiled = new Set();
+  const payrolls = [];     // what each month's run was: the engine's own record, checked against Mizan by the verifier
+  const minor = (egp) => Math.round(egp * 100);
+  async function payProfile(e) {
+    const c = hrCode[e.code];
+    if (!c || profiled.has(e.code) || !(e.basic_egp > 0) || e.employment_type === 'agency_temp') return;
+    profiled.add(e.code);
+    const eff = e.hire_date > from ? e.hire_date : from;
+    await tryPut(`pay profile ${c}`, () => ho2('PUT', `/api/payroll/profiles/${encodeURIComponent(c)}`, { fields: { effective_from: eff, basic_minor: minor(e.basic_egp), allowance_minor: minor(e.gross_monthly_egp - e.basic_egp), insurable_minor: minor(e.insurable_egp) } }));
+  }
+  /** On the first day of a month: last month's unexcused absences become adjustments (attendance reaches pay as adjustments), the officer calculates, someone else approves, HR sends the totals to Mizan. */
+  async function payroll(day) {
+    if (!day.endsWith('-01') || addDays(day, -1) < from) return;
+    const period = addDays(day, -1).slice(0, 7), last = addDays(day, -1);
+    let absences = 0;
+    for (const e of people.employees) {
+      if (!created.has(e.code) || !profiled.has(e.code)) continue;
+      let n = 0;
+      for (const d of dateList(period + '-01', last)) if (isWork(d) && P.activeOn(e, d) && P.absentOn(e, d) && P.unexcused(e, d)) n++;
+      if (n) { const ok = await tryPut(`absence adjustment ${hrCode[e.code]}`, () => ho2('POST', '/api/payroll/adjustments', { period, employee: hrCode[e.code], kind: 'unpaid_absence_days', value: n, note: 'unexcused absence' })); if (ok) absences += n; }
+    }
+    const run = await tryPut(`payroll calculation ${period}`, () => ho2('POST', '/api/payroll/calculate', { period }));
+    if (!run) return;
+    const approved = await tryPut(`payroll approval ${period}`, () => hr('POST', `/api/payroll/runs/${period}/${run.run}/approve`, { fingerprint: run.fingerprint }));
+    payrolls.push({ period, run: run.run, headcount: run.headcount, absenceDays: absences, totals: run.totals, hours: run.hours, warnings: run.warnings, status: approved?.status ?? run.status, delivery: approved?.delivery?.state ?? null });
   }
   async function syncSkills(day, only) {
     for (const code of created) {
@@ -115,6 +146,7 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
   }
   const starting = people.employees.filter((e) => e.hire_date <= from && employedAt(e, from) && e.employment_type !== 'agency_temp');
   for (const e of starting) await createEmployee(e);
+  for (const e of starting) await payProfile(e);
   await syncSkills(from);
   for (const e of starting) await assign(e);
   for (const e of starting) await leaveOf(e);
@@ -183,6 +215,7 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
           const res = await tryPut(`hire ${c.code}`, () => ho2('POST', `/api/recruitment/candidates/${c.code}/hire`, { hire_date: day, position_id: jobPos(e.position), ...(e.contract_end ? { contract_end: e.contract_end } : {}), ...(e.employment_type === 'agency_temp' ? { agency_id: agency.id } : {}) }));
           if (res) {
             hrCode[e.code] = res.employee; created.add(e.code); stats.hired++;
+            await payProfile(e);
             // the requisition row moved (filled count)
             reqRow[c.requisition] = (await hr('GET', '/api/hire_requisition')).find((x) => x.code === c.requisition) ?? reqRow[c.requisition];
           }
@@ -301,5 +334,5 @@ export async function setupHr({ h, hr, gm, g, book, pump, log }) {
     await pump();
   }
 
-  return { morning, evening, crewPlan, personFor, stats, refused, hrCode, created };
+  return { morning, evening, payroll, payrolls, crewPlan, personFor, stats, refused, hrCode, created };
 }

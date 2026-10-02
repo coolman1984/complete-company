@@ -5,6 +5,7 @@
 //   Quantities   every GMES work order's completed quantity = what Mizan received into stock for it (by work order code)
 //   Money        Mizan's trial balance is balanced; a closed work order leaves nothing in work in progress
 //   People       (with HR) every crew requirement HR received has a matching staffing row
+//   Payroll      (with HR and payroll runs) every approved pay run reached accounting; Mizan's salary accounts equal HR's approved runs; no person's pay is in the totals Mizan holds
 // Use:  import { verify } from './verify.mjs';  const report = await verify({ mizan, gmes, hr });   // calls as in chain/run.mjs
 // or:   node verify.mjs   with CHAIN_INPUT as chain/run.mjs (a running stack) -> prints the report, exit code 1 on a failure.
 
@@ -18,7 +19,7 @@ export function toMilli(text) {
   return (m[1] ? -1 : 1) * (Number(m[2]) * U + Number((m[3] ?? '').padEnd(3, '0') || 0));
 }
 
-export async function verify({ mizan, gmes, hr, day, kpi }) {
+export async function verify({ mizan, gmes, hr, day, kpi, payrolls }) {
   const checks = [];
   const add = (area, name, ok, detail = '') => checks.push({ area, name, ok: !!ok, detail: ok ? '' : String(detail).slice(0, 500) });
   const safe = async (area, name, fn) => { try { await fn(); } catch (e) { add(area, name, false, `could not be checked: ${e.message}`); } };
@@ -141,6 +142,31 @@ export async function verify({ mizan, gmes, hr, day, kpi }) {
       for (const r of ot) perDay.set(`${r.employee_id}|${r.work_date}`, (perDay.get(`${r.employee_id}|${r.work_date}`) ?? 0) + Number(r.planned_minutes));
       const over = [...perDay].filter(([, m]) => m > pol.max_daily_minutes_incl_ot);
       add('People', 'no overtime is approved beyond the plant policy caps', over.length === 0, `${over.length} person-days over ${pol.max_daily_minutes_incl_ot} minutes`);
+    });
+  }
+
+  // ---- payroll: HR calculates, Mizan books; the two must agree to the piastre
+  if (hr && payrolls?.length) {
+    await safe('Payroll', 'every approved pay run reached accounting', async () => {
+      const runs = (await hr('GET', '/api/payroll/runs')).filter((r) => r.status === 'approved');
+      const notSent = runs.filter((r) => r.delivery?.state !== 'delivered');
+      add('Payroll', 'every approved pay run reached accounting', runs.length > 0 && notSent.length === 0, runs.length ? notSent.map((r) => `${r.period} #${r.run}: ${r.delivery?.state ?? 'not sent'} ${r.delivery?.detail ?? ''}`).join('; ') : 'no pay run was approved');
+    });
+    await safe('Payroll', "Mizan's salary accounts equal HR's approved pay runs", async () => {
+      const runs = (await hr('GET', '/api/payroll/runs')).filter((r) => r.status === 'approved');
+      const sum = (k) => runs.reduce((a, r) => a + r.totals[k], 0);
+      const want = { 5210: sum('gross_earnings') + sum('overtime') + sum('night_allowance'), 5211: sum('employer_social_insurance'), 2140: sum('net_payable'), 2141: sum('employee_social_insurance') + sum('employer_social_insurance'), 2142: sum('salary_tax'), 2185: sum('other_deductions') };
+      const y = (day ?? new Date().toISOString().slice(0, 10)).slice(0, 4);
+      const tb = await mizan('GET', `/api/reports/trial-balance?from=${y}-01-01&to=${y}-12-31`);
+      const byCode = new Map(tb.rows.map((r) => [r.code, r]));
+      const bad = Object.entries(want).filter(([code, amount]) => { const r = byCode.get(code); const got = r ? (['5210', '5211'].includes(code) ? r.debit : r.credit) : 0; return got !== amount; })
+        .map(([code, amount]) => `${code}: HR ${amount}, Mizan ${(['5210', '5211'].includes(code) ? byCode.get(code)?.debit : byCode.get(code)?.credit) ?? 0}`);
+      add('Payroll', "Mizan's salary accounts equal HR's approved pay runs", runs.length > 0 && bad.length === 0, bad.join('; ') || 'no approved run');
+    });
+    await safe('Payroll', 'a pay run never changes after approval', async () => {
+      const runs = (await hr('GET', '/api/payroll/runs')).filter((r) => r.status === 'approved');
+      const changed = runs.filter((r) => { const mine = payrolls.find((p) => p.period === r.period && p.run === r.run); return mine && mine.totals.net_payable !== r.totals.net_payable; });
+      add('Payroll', 'a pay run never changes after approval', changed.length === 0, changed.map((r) => `${r.period} #${r.run}`).join(', '));
     });
   }
 

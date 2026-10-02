@@ -1,6 +1,15 @@
 code,name_en,name_ar,type,uom,tracking,procurement,lead_time_days,moq,lot_rule,lot_size,safety_stock,supplier_code,purchase_price,sale_price,line
+CLAY-RED,Red clay,طفلة حمراء,raw,KG,lot,buy,7,0,multiple,100000,340000,S-CLAY,1.5,,
+FELDSPAR,Feldspar,فلسبار,raw,KG,lot,buy,7,0,multiple,25000,75000,S-CLAY,3,,
+KAOLIN,Kaolin,كاولين,raw,KG,lot,buy,7,0,multiple,10000,40000,S-CLAY,5,,
+GLZ-WHT,White glaze,جليز أبيض,raw,KG,lot,buy,10,500,multiple,2000,8000,S-GLZ,45,,
+GLZ-GRY,Grey glaze,جليز رمادي,raw,KG,lot,buy,10,500,multiple,1000,4500,S-GLZ,48,,
+GLZ-BGE,Beige glaze,جليز بيج,raw,KG,lot,buy,10,500,multiple,1000,3500,S-GLZ,46,,
+INK-OAK,"Digital ink, oak pattern",حبر رقمي بلوط,raw,KG,lot,buy,14,100,multiple,100,200,S-GLZ,180,,
+CTN-60,Carton 60x60 (1.44 m2),كرتونة ٦٠×٦٠,packaging,PCS,lot,buy,5,1000,multiple,5000,9000,S-CTN,12,,
+CTN-3060,Carton 30x60 (1.62 m2),كرتونة ٣٠×٦٠,packaging,PCS,lot,buy,5,1000,multiple,2000,3000,S-CTN,11,,
+CTN-2090,Carton 20x90 (1.44 m2),كرتونة ٢٠×٩٠,packaging,PCS,lot,buy,5,1000,multiple,1000,2000,S-CTN,13,,
 TL-6060-WHT,"Porcelain tile 60x60 white, 1st grade",بورسلين ٦٠×٦٠ أبيض فرز أول,finished,M2,lot,make,1,0,lot_for_lot,0,0,,,320,L1
-CLAY-RED,Red clay,طفلة حمراء,raw,KG,lot,buy,7,0,lot_for_lot,0,0,S-CLAY,1.5,,
-FELDSPAR,Feldspar,فلسبار,raw,KG,lot,buy,7,0,lot_for_lot,0,0,S-CLAY,3,,
-GLZ-WHT,White glaze,جليز أبيض,raw,KG,lot,buy,10,0,lot_for_lot,0,0,S-GLZ,45,,
-CTN-60,Carton 60x60 (1.44 m2),كرتونة ٦٠×٦٠,packaging,PCS,lot,buy,5,0,lot_for_lot,0,0,S-GLZ,12,,
+TL-6060-GRY,"Porcelain tile 60x60 grey, 1st grade",بورسلين ٦٠×٦٠ رمادي فرز أول,finished,M2,lot,make,1,0,lot_for_lot,0,0,,,335,L1
+TL-3060-BGE,"Wall tile 30x60 beige glossy, 1st grade",سيراميك حائط ٣٠×٦٠ بيج لامع فرز أول,finished,M2,lot,make,1,0,lot_for_lot,0,0,,,255,L2
+TL-2090-OAK,"Wood-look porcelain plank 20x90 oak, 1st grade",بورسلين خشبي ٢٠×٩٠ بلوط فرز أول,finished,M2,lot,make,1,0,lot_for_lot,0,0,,,380,L2

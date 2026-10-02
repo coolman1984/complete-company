@@ -9,6 +9,7 @@ export const FLOWS = {
   gmesToMizan: ['mes.purchase_requisition.v1', 'mes.supply_plan.v1', 'mes.lot_decision.v1', 'mes.shipment.dispatched.v1',
     'mes.material.consumed.v1', 'mes.production.completed.v1', 'mes.production.scrapped.v1', 'mes.work_order.closed.v1'],
   gmesToHr: ['mes.crew_requirement.v1'],
+  hrToMizan: ['hr.payroll_period.v1'],   // payroll totals per cost centre and account key (no names); HR calculates, Mizan books
 };
 
 /** A signed-in caller. `timeoutMs` is how long one call may take (a backup of a large database is checked by a rehearsal: minutes, not seconds). */
@@ -82,6 +83,12 @@ export async function pair(input) {
       const gmesKeyForHr = await step('Itqan key for HR', async () => (await gmes('POST', '/api/keys', { name: `hr-${tag}`, scopes: ['eco.inbox.write'] })).key);
       await step('HR sends people, schedules and qualifications to Itqan', async () => {
         await hr('PUT', '/api/admin/integration', { gmes_url: urls.gmes, key: gmesKeyForHr });
+        return 'configured';
+      });
+      // the payroll HR calculates is booked by Mizan: HR needs a key to call Mizan with (totals per cost centre only, no names)
+      const mizanKeyForHr = await step('Mizan key for HR payroll', async () => (await mizan('POST', '/api/eco/keys', { name: `hr-${tag}`, scopes: ['eco.inbox.write'] })).key);
+      await step('HR sends payroll totals to Mizan', async () => {
+        await hr('PUT', '/api/payroll/target', { url: urls.mizan, key: mizanKeyForHr });
         return 'configured';
       });
     }

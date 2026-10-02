@@ -1,9 +1,16 @@
 code,type,parent,name,capacity_per_shift,crew
-CP1,plant,,Tile plant,,
-FL,area,CP1,Floor tiles,,
-L1,line,FL,Tile line 1,2500,
-L1-PR,station,L1,Pressing,,2
-L1-DR,station,L1,Drying,,2
-L1-GL,station,L1,Glazing,,2
+DC1,plant,,Ceramics plant,,
+FL,area,DC1,Floor tiles,,
+WL,area,DC1,Wall tiles and planks,,
+L1,line,FL,Tile line 1,2400,
+L2,line,WL,Tile line 2,1800,
+L1-PR,station,L1,Pressing,,3
+L1-DR,station,L1,Drying,,1
+L1-GL,station,L1,Glazing and printing,,4
 L1-KL,station,L1,Kiln firing,,2
-L1-SP,station,L1,Sorting and packing,,4
+L1-SP,station,L1,Sorting and packing,,8
+L2-PR,station,L2,Pressing,,3
+L2-DR,station,L2,Drying,,1
+L2-GL,station,L2,Glazing and printing,,5
+L2-KL,station,L2,Kiln firing,,2
+L2-SP,station,L2,Sorting and packing,,7

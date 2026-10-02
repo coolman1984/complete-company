@@ -28,7 +28,7 @@ export async function backupAll({ urls, logins }) {
       const passed = made?.rehearsal?.ok === true;
       results.push({
         key: app.key, name: app.name, ok: passed, backup: made?.name ?? null,
-        detail: passed ? 'made and rehearsed' : `made but the rehearsal did not pass: ${JSON.stringify(made?.rehearsal?.problems ?? made?.rehearsal ?? 'no rehearsal reported').slice(0, 300)}`,
+        detail: passed ? 'made and rehearsed' : `made but the rehearsal did not pass: ${JSON.stringify(made?.rehearsal?.problems ?? made?.rehearsal?.checks?.filter((c) => !c.ok) ?? made?.rehearsal ?? 'no rehearsal reported').slice(0, 600)}`,
       });
     } catch (e) {
       results.push({ key: app.key, name: app.name, ok: false, backup: null, detail: e.message });

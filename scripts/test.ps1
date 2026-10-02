@@ -76,6 +76,10 @@ if ((Test-Path -LiteralPath (Join-Path (Split-Path -Parent (Split-Path -Parent $
   $mini = & (Join-Path $PSScriptRoot 'scenario.ps1') -Action mini 2>&1
   Check ($LASTEXITCODE -eq 0 -and ($mini -match 'SCENARIO: PASSED')) 'the mini scenario plays, reconciles across the applications and backs them up'
   if ($LASTEXITCODE -ne 0) { $mini | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" } }
+  Write-Host '== ceramic sample company (15 days across a month end: tiles by lot, sample salaries, a pay run HR calculates, a second person approves and Mizan books)'
+  $cer = & (Join-Path $PSScriptRoot 'scenario.ps1') -Action ceramic-mini 2>&1
+  Check ($LASTEXITCODE -eq 0 -and ($cer -match 'SCENARIO: PASSED') -and ($cer -match 'Mizan.s salary accounts equal HR.s approved pay runs')) 'the ceramic company plays, its pay run reaches Mizan to the piastre, and every application backs up'
+  if ($LASTEXITCODE -ne 0) { $cer | Select-Object -Last 15 | ForEach-Object { Write-Host "    $_" } }
 } else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
 
 Write-Host '== master-data importer (CSV folder -> Mizan and Itqan)'

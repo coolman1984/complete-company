@@ -8,6 +8,7 @@ const MATERIAL = { raw: 'raw', semi: 'semi_finished', finished: 'finished', pack
 
 /** Mizan tracks what GMES scans: lots for the parts that are scanned by lot (the open cells too: see the book's note), serials for what is made here. */
 export function trackingOf(item) {
+  if (item.batch_output) return 'batch';   // tiles are made and delivered by lot, not by serial number
   if (item.type === 'semi' || item.type === 'finished') return 'serial';
   return item.tracking === 'none' || item.nonstock ? 'none' : 'batch';
 }
@@ -30,12 +31,16 @@ export async function setupMizan({ mz, book, log }) {
       sku: it.code, nameEn: it.name_en.slice(0, 200), nameAr: it.name_en.slice(0, 200), kind: it.nonstock ? 'service' : 'product', unit: it.uom, trackStock: !it.nonstock,
       salePrice: it.type === 'finished' ? cents(it.sell_in_egp) : 0, purchasePrice: price, tracking: trackingOf(it),
       materialType: MATERIAL[it.type] ?? null, procurementType: it.procurement, leadTimeDays: it.lead_time_days ?? 0,
-      moq: Math.round((it.moq || 0) * U), lotSizeRule: it.lot_rule ?? 'lot_for_lot', lotSize: it.lot_rule === 'lot_for_lot' ? 0 : Math.round((it.lot_size || 0) * U),
+      moq: Math.round((it.moq || 0) * U), safetyStock: Math.round((it.safety_stock || 0) * U), lotSizeRule: it.lot_rule ?? 'lot_for_lot', lotSize: it.lot_rule === 'lot_for_lot' ? 0 : Math.round((it.lot_size || 0) * U),
       ...(it.supplier && supplier[it.supplier] ? { defaultSupplierId: supplier[it.supplier] } : {}),
     })).id;
   }
+  // cost centres: one per cost centre the organisation names (the payroll HR books lands on them)
+  const costCenter = {};
+  for (const o of book.people?.org?.filter((x) => x.cost_center) ?? []) costCenter[o.cost_center] = (await mz('POST', '/api/cost-centers', { code: o.cost_center, nameEn: o.name.slice(0, 100), nameAr: o.name.slice(0, 100) }, { allow: true }))?.id;
+  if (Object.keys(costCenter).length) log(true, 'Mizan has the cost centres', `${Object.keys(costCenter).length} cost centres`);
   log(true, 'Mizan holds the parties and items', `${book.suppliers.length} suppliers, ${book.customers.length} customers, ${book.items.length} items`);
-  return { supplier, customer, item };
+  return { supplier, customer, item, costCenter };
 }
 
 export const DEFECTS = [['BOARD-SOLDER', 'Solder defect', 'solder', 'major'], ['CELL-BRIGHT-DOT', 'Open cell bright dot', 'display', 'major'], ['FUNC-FAIL', 'Function test failure', 'function', 'major'],
@@ -89,14 +94,15 @@ export async function setupGmes({ gm, book, log }) {
   // quality: incoming inspection of the open cells, outgoing inspection of every finished set
   const plans = {};
   for (const it of book.items) {
-    if (it.code.startsWith('OC-')) await gm('POST', '/api/qms/plans', { code: `IQC-${it.code}`, nameEn: `Incoming ${it.code}`, stage: 'iqc', itemId: gid[it.code], aql: '0.65' });
+    if (it.code.startsWith('OC-') || it.iqc) await gm('POST', '/api/qms/plans', { code: `IQC-${it.code}`, nameEn: `Incoming ${it.code}`, stage: 'iqc', itemId: gid[it.code], aql: '0.65' });
     if (it.type === 'finished') plans[it.code] = (await gm('POST', '/api/qms/plans', { code: `OQC-${it.code}`, nameEn: `Outgoing ${it.code}`, stage: 'oqc', itemId: gid[it.code], aql: '0.65' })).id;
   }
-  for (const [code, nameEn, category, severity] of DEFECTS) await gm('PUT', `/api/defect-codes/${code}`, { nameEn, category, severity });
-  for (const [kind, code, nameEn] of REPAIR_CODES) await gm('PUT', `/api/repair-codes/${kind}/${code}`, { nameEn });
+  for (const [code, nameEn, category, severity] of book.defects ?? DEFECTS) await gm('PUT', `/api/defect-codes/${code}`, { nameEn, category, severity });
+  if (book.production?.mode !== 'batch') for (const [kind, code, nameEn] of REPAIR_CODES) await gm('PUT', `/api/repair-codes/${kind}/${code}`, { nameEn });
 
   // packing and planning
-  for (const m of book.meta.models) await gm('PUT', `/api/pack-specs/${gid[m]}`, { perPallet: book.packing[m].per_pallet, perContainer: { TRUCK: Math.max(1, Math.floor(book.packing[m].per_truck / book.packing[m].per_pallet)),
+  // a plant that ships tiles by lot has no pallet specifications (see the book's production mode)
+  if (book.production?.mode !== 'batch') for (const m of book.meta.models) await gm('PUT', `/api/pack-specs/${gid[m]}`, { perPallet: book.packing[m].per_pallet, perContainer: { TRUCK: Math.max(1, Math.floor(book.packing[m].per_truck / book.packing[m].per_pallet)),
     '40HC': Math.max(1, Math.floor(book.packing[m].per_40hc / book.packing[m].per_pallet)) } });   // GMES counts pallets per container
   for (const it of book.items.filter((i) => i.type !== 'raw' && i.type !== 'packaging' && i.type !== 'service')) await gm('PUT', '/api/pln/item-lines', { itemId: gid[it.code], lines: [it.line] });
   for (const st of book.people.station_requirements) if (node[st.station] && st.crew) await gm('PUT', '/api/pln/crew-settings', { node: st.station, crew: st.crew });

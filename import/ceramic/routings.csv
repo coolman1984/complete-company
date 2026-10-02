@@ -1,6 +1,21 @@
 item,seq,op,name,kind,cycle_s,mandatory
 TL-6060-WHT,10,PR,Pressing,work,,yes
 TL-6060-WHT,20,DR,Drying,work,,no
-TL-6060-WHT,30,GL,Glazing,work,,yes
+TL-6060-WHT,30,GL,Glazing and printing,work,,yes
 TL-6060-WHT,40,KL,Kiln firing,work,,no
 TL-6060-WHT,50,SP,Sorting and packing,pack,,yes
+TL-6060-GRY,10,PR,Pressing,work,,yes
+TL-6060-GRY,20,DR,Drying,work,,no
+TL-6060-GRY,30,GL,Glazing and printing,work,,yes
+TL-6060-GRY,40,KL,Kiln firing,work,,no
+TL-6060-GRY,50,SP,Sorting and packing,pack,,yes
+TL-3060-BGE,10,PR,Pressing,work,,yes
+TL-3060-BGE,20,DR,Drying,work,,no
+TL-3060-BGE,30,GL,Glazing and printing,work,,yes
+TL-3060-BGE,40,KL,Kiln firing,work,,no
+TL-3060-BGE,50,SP,Sorting and packing,pack,,yes
+TL-2090-OAK,10,PR,Pressing,work,,yes
+TL-2090-OAK,20,DR,Drying,work,,no
+TL-2090-OAK,30,GL,Glazing and printing,work,,yes
+TL-2090-OAK,40,KL,Kiln firing,work,,no
+TL-2090-OAK,50,SP,Sorting and packing,pack,,yes
