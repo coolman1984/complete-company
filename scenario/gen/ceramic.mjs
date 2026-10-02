@@ -5,9 +5,9 @@
 //   * about 145 people with grades, salaries, shifts, qualifications, leave, turnover with hiring, and overtime
 // Salaries here are SAMPLE data (invented, in the range of Egyptian industrial wages): they are the input of the payroll the engine runs.
 // Nothing here calls an application. Usage: node ceramic.mjs   (prints a summary)
-import { addDays, dateList, dow, isWork, U, pad, HOLIDAYS, SEED, rint } from './lib.mjs';
+import { addDays, addMonths, addWork, nextWork, dateList, dow, isWork, U, pad, HOLIDAYS, SEED } from './lib.mjs';
 
-export const WINDOW = { from: '2026-07-01', to: '2026-10-03' };
+export const WINDOW = { from: '2026-07-01', to: '2026-10-02' };   // up to the day the owner starts the trial: nothing is dated after it
 export const COMPANY = { code: 'DCER', legal_name: 'Demo Ceramics Co.', vat_rate: 0.14, plan_fx: 50 };
 export const C_WINDOW = { from: '9999-01-01', to: '9999-01-01', line: null, shift: 'C' };   // no temporary night crew in this plant
 
@@ -43,6 +43,8 @@ export const BOMS = {
   'TL-3060-BGE': { lines: [L('CLAY-RED', 14, 'PR'), L('FELDSPAR', 3, 'PR'), L('KAOLIN', 1.5, 'PR'), L('GLZ-BGE', 0.7, 'GL'), L('CTN-3060', 0.62, 'SP')] },
   'TL-2090-OAK': { lines: [L('CLAY-RED', 19, 'PR'), L('FELDSPAR', 4.2, 'PR'), L('KAOLIN', 2, 'PR'), L('GLZ-WHT', 0.5, 'GL'), L('INK-OAK', 0.06, 'GL'), L('CTN-2090', 0.7, 'SP')] },
 };
+// Cartons per m2 include a small packing reserve: 0.8% for 1.44 m2 cartons,
+// 0.44% for 1.62 m2 cartons. Application quantities support three decimals.
 const OPS = [['PR', 'Pressing', 'work', 4], ['DR', 'Drying', 'work', 6], ['GL', 'Glazing and printing', 'work', 5], ['KL', 'Kiln firing', 'work', 50], ['SP', 'Sorting and packing', 'pack', 6]];
 export const ROUTINGS = Object.fromEntries(MODELS.map((m) => [m, { lines: [ITEMS.find((i) => i.code === m).line], operations: OPS.map(([code, name, kind, cycle_s], i) => ({ seq: (i + 1) * 10, code, name, kind, cycle_s })) }]));
 export const PLANT = [
@@ -89,13 +91,13 @@ export function salesOrders(from, to) {
           const day = days[Math.floor(U('od', month, item, c.code, i) * days.length)];
           if (day < from || day > to) continue;
           const qty = cartons(item, share / n * (0.8 + 0.4 * U('oq', month, item, c.code, i))) * COVER[item];
-          orders.push({ date: day, customer: c.code, item, qty: Math.round(qty * 100) / 100, requested: addDays(day, 10 + Math.floor(U('rq', month, item, c.code, i) * 15)) });
+          orders.push({ date: day, customer: c.code, item, qty: Math.round(qty * 100) / 100, requested: nextWork(addDays(day, 10 + Math.floor(U('rq', month, item, c.code, i) * 15))) });
         }
       }
     }
   }
   // the project order: a developer buys a whole block's flooring in August, delivery in three weeks
-  const project = { date: '2026-08-10', customer: 'C-RSEA', lines: [['TL-6060-WHT', 6000], ['TL-2090-OAK', 3200], ['TL-3060-BGE', 2400]], requested: '2026-08-31', ref: 'RSD-BLOCK-7' };
+  const project = { date: '2026-08-10', customer: 'C-RSEA', lines: [['TL-6060-WHT', 6000], ['TL-2090-OAK', 3200], ['TL-3060-BGE', 2400]].map(([item, m2]) => [item, Math.round(Math.ceil(m2 / COVER[item]) * COVER[item] * 100) / 100]), requested: '2026-08-31', ref: 'RSD-BLOCK-7' };
   return { orders: orders.filter((o) => o.date >= from && o.date <= to), project };
 }
 
@@ -146,7 +148,7 @@ const UNIT_CC = Object.fromEntries(ORG.map((o) => [o.code, o.cost_center]));
 const SPEC = [];
 const S = (unit, job, n, teams = ['D'], extra = {}) => SPEC.push({ unit, job, n, teams, ...extra });
 S('MGT', 'J-CEO', 1); S('MGT', 'J-CFO', 1); S('MGT', 'J-COO', 1);
-S('PMG', 'J-PM', 1); S('PMG', 'J-SUP', 1, ['A', 'B']); S('PMG', 'J-SUP', 1, ['A', 'B'], { line: 'L2' });
+S('PMG', 'J-PM', 1); S('PMG', 'J-SUP', 1, ['A', 'B'], { line: 'L1' }); S('PMG', 'J-SUP', 1, ['A', 'B'], { line: 'L2' });
 for (const [unit, line] of [['L1', 'L1'], ['L2', 'L2']]) {
   for (const [station, crew] of Object.entries(CREW).filter(([s]) => s.startsWith(line + '-'))) {
     const op = station.slice(3);
@@ -168,7 +170,7 @@ S('SAL', 'J-SM', 1); S('SAL', 'J-KAM', 2); S('SAL', 'J-CSR', 3); S('SAL', 'J-MKT
 export const POSITIONS = [];
 const posKey = new Map();
 function positionFor(s, team) {
-  const code = `POS-${s.unit}-${s.job.slice(2)}${s.op ? '-' + s.op : ''}-${team}`;
+  const code = `POS-${s.unit}-${s.job.slice(2)}${s.op ? '-' + s.op : ''}${s.unit === 'PMG' && s.line ? '-' + s.line : ''}-${team}`;
   if (!posKey.has(code)) { const p = { code, unit: s.unit, job: s.job, team, line: s.line || null, op: s.op || null, headcount: 0, vacant: 0 }; posKey.set(code, p); POSITIONS.push(p); }
   return posKey.get(code);
 }
@@ -236,7 +238,8 @@ export const HIRING = { requisitions: [], candidates: [], training: [] };
   const pool = EMPLOYEES.filter((e) => e.job === 'J-SRT' && e.op === 'SP');
   const taken = new Set();
   let candNo = 100, reqNo = 0;
-  for (const [exit, hire] of [['2026-07-09', '2026-07-23'], ['2026-08-06', '2026-08-20'], ['2026-09-03', '2026-09-17']]) {
+  for (const [exit, plannedHire] of [['2026-07-09', '2026-07-23'], ['2026-08-06', '2026-08-20'], ['2026-09-03', '2026-09-17']]) {
+    const hire = nextWork(plannedHire), certified = addWork(hire, 1), productive = addWork(hire, 2);
     const req = `REQ-${pad(++reqNo, 4)}`;
     const leavers = [];
     for (let i = 0; leavers.length < 2; i++) { const e = pool[Math.floor(U('leaver', exit, i) * pool.length)]; if (!taken.has(e.code)) { taken.add(e.code); leavers.push(e); } }
@@ -244,14 +247,14 @@ export const HIRING = { requisitions: [], candidates: [], training: [] };
     for (const l of leavers) {
       l.exit_date = exit; l.status = 'left';
       MOVEMENTS.push({ type: 'leaver', employee: l.code, date: exit, reason: 'resignation' });
-      const rep = addEmp({ unit: l.unit, job: l.job, position: l.position, team: l.team, line: l.line, op: l.op, grade: 'G1', hire_date: hire, first_productive_date: addDays(hire, 3), source: 'walk_in', req, gross: 7500 });
-      rep.skills = [{ skill: 'SAFE', level: 2, certified_on: addDays(hire, 2), expires_on: addDays(hire, 2 + 365) }, { skill: 'SORT', level: 2, certified_on: addDays(hire, 2), expires_on: addDays(hire, 2 + 730) }];
+      const rep = addEmp({ unit: l.unit, job: l.job, position: l.position, team: l.team, line: l.line, op: l.op, grade: 'G1', hire_date: hire, first_productive_date: productive, source: 'walk_in', req, gross: 7500 });
+      rep.skills = [{ skill: 'SAFE', level: 2, certified_on: certified, expires_on: addDays(certified, 365) }, { skill: 'SORT', level: 2, certified_on: certified, expires_on: addDays(certified, 730) }];
       MOVEMENTS.push({ type: 'hire', employee: rep.code, date: hire, replaces: l.code, requisition: req, first_productive_date: rep.first_productive_date });
       cands.push({ code: `CAN-${pad(++candNo, 4)}`, requisition: req, source: 'walk_in', stage: 'hired', hired_as: rep.code, applied: addDays(hire, -12), screened: addDays(hire, -9), interviewed: addDays(hire, -6), offered: addDays(hire, -3), hired: hire });
     }
     HIRING.requisitions.push({ code: req, job: 'J-SRT', count: 2, reason: 'replacement', employment_type: 'regular', raised: addDays(exit, 1), approved: addDays(exit, 2), needed_by: hire, status: 'filled', work_center: 'L1/L2 sorting', approved_by: 'E000002' });
     HIRING.candidates.push(...cands);
-    HIRING.training.push({ code: `TRN-${pad(HIRING.training.length + 1, 4)}`, course: 'Safety induction and sorting basics (2 days)', dates: [addDays(hire, 0), addDays(hire, 1)], attendees: cands.map((c) => c.hired_as), result: 'pass' });
+    HIRING.training.push({ code: `TRN-${pad(HIRING.training.length + 1, 4)}`, course: 'Safety induction and sorting basics (2 days)', dates: [hire, certified], attendees: cands.map((c) => c.hired_as), result: 'pass' });
   }
 }
 
@@ -287,6 +290,9 @@ export const OT_PLAN = [
 export function buildCeramicBook(opts = {}) {
   const from = opts.from ?? WINDOW.from, to = opts.to ?? WINDOW.to;
   const models = opts.models ?? MODELS;
+  const validDate = (d) => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) && Number.isFinite(Date.parse(d + 'T00:00:00Z')) && new Date(d + 'T00:00:00Z').toISOString().slice(0, 10) === d;
+  if (!validDate(from) || !validDate(to) || from > to) throw new Error('Ceramic window needs valid ISO dates with from <= to');
+  if (!Array.isArray(models) || !models.length || new Set(models).size !== models.length || models.some((m) => !MODELS.includes(m))) throw new Error('Ceramic models must be a nonempty, unique selection of known tile products');
   const keep = new Set(models);
   for (const m of models) for (const l of BOMS[m].lines) keep.add(l.component);
   const items = ITEMS.filter((i) => keep.has(i.code));
@@ -299,14 +305,15 @@ export function buildCeramicBook(opts = {}) {
     const first = dateList(month + '-01', month + '-10').find(isWork);
     const rows = [];
     for (let k = 0; k < 3; k++) {
-      const mk = addDays(month + '-15', 31 * k).slice(0, 7);
+      const mk = addMonths(month, k);
       for (const m of models) rows.push({ item: m, month: mk, qty: Math.round(MONTHLY_M2[m] * (SEASON[mk] ?? 1) / 10) * 10 });
     }
     add(first < from ? from : first, 'sop', { cycle: month, version: 1, code: `SOP-${month}`, rows });
   }
   const { orders, project } = salesOrders(from, to);
   for (const o of orders) if (keep.has(o.item)) add(o.date, 'sales_order', { customer: o.customer, channel: 'domestic', lines: [{ item: o.item, qty: o.qty, unit_price_egp: unitPrice(o.customer, o.item), requested: o.requested }] });
-  add(project.date, 'sales_order', { customer: project.customer, channel: 'domestic', reference: project.ref, lines: project.lines.filter(([m]) => keep.has(m)).map(([m, q]) => ({ item: m, qty: q, unit_price_egp: unitPrice(project.customer, m), requested: project.requested })) });
+  const projectLines = project.lines.filter(([m]) => keep.has(m)).map(([m, q]) => ({ item: m, qty: q, unit_price_egp: unitPrice(project.customer, m), requested: project.requested }));
+  if (projectLines.length) add(project.date, 'sales_order', { customer: project.customer, channel: 'domestic', reference: project.ref, lines: projectLines });
   events.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0));
   const days = dateList(from, to).map((d) => ({ date: d, work: isWork(d), holiday: HOLIDAYS[d] ?? null, fx_egp_per_usd: 50 }));
   return {

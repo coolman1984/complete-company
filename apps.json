@@ -20,14 +20,14 @@
       "role": "People, organisation, shifts, attendance, skills", "roleAr": "الأفراد والهيكل والورديات والحضور والمهارات",
       "folder": "hr-system", "health": "/api/info",
       "real": { "port": 8766, "launcher": "hr_main.py", "arguments": [] },
-      "demo": { "port": 8790, "launcher": "Start-HR-Demo.bat", "arguments": [] }
+      "demo": { "port": 8790, "launcher": "Start-HR-Demo.bat", "arguments": ["-NoBrowser"] }
     },
     {
       "key": "space", "name": "Space Planner", "nameAr": "مخطط المساحات",
       "role": "2D/3D layout of halls, lines and warehouses", "roleAr": "تخطيط ثنائي وثلاثي الأبعاد للصالات والخطوط والمخازن",
       "folder": "3D-Modeling", "health": "/api/health",
-      "real": { "port": 4600, "launcher": "start.bat", "arguments": [] },
-      "demo": { "port": 4600, "launcher": "start.bat", "arguments": [] }
+      "real": { "port": 4600, "launcher": "start.bat", "arguments": ["--no-open"] },
+      "demo": { "port": 4601, "launcher": "start-demo.bat", "arguments": ["--no-open"] }
     }
   ]
 }

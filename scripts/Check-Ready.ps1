@@ -11,7 +11,7 @@ $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\apps.ps1"
 $apps = @(Get-PackageApps -Demo:$Demo)
 $arg = @()
-foreach ($a in $apps) { if ($a.Key -in 'mizan', 'gmes', 'hr') { $arg += @("--$($a.Key)", "http://127.0.0.1:$($a.Port)") } }
+foreach ($a in $apps) { $arg += @("--$($a.Key)", "http://127.0.0.1:$($a.Port)") }
 $env:READY_USER = $User; $env:READY_PASSWORD = $Password
 if ($Backup) { $arg += '--backup' }
 & (Get-Command node).Source (Join-Path $script:PackageRoot 'ready\check.mjs') @arg

@@ -1,7 +1,7 @@
 <#
 .SYNOPSIS
   Checks the package repository: apps.json is valid and complete, every launcher it names exists in the sibling
-  application folders, real and demo ports never collide (except Space Planner, which has one copy), and the portal
+  application folders, real and demo ports never collide, and the portal
   answers /api/status with one entry per application.
 #>
 $ErrorActionPreference = 'Stop'
@@ -27,7 +27,7 @@ foreach ($demo in $false, $true) {
 $real = @(Get-PackageApps); $demoApps = @(Get-PackageApps -Demo)
 foreach ($r in $real) {
   $d = $demoApps | Where-Object Key -eq $r.Key
-  if ($r.Key -ne 'space') { Check ($r.Port -ne $d.Port) "$($r.Key): demo port differs from the real one" }
+  Check ($r.Port -ne $d.Port) "$($r.Key): demo port differs from the real one"
 }
 
 Write-Host '== demo companies'
@@ -49,6 +49,8 @@ try {
   $deadline = (Get-Date).AddSeconds(10)
   while (-not (Test-PortOpen $port) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 200 }
   $s = Invoke-RestMethod "http://127.0.0.1:$port/api/status"
+  Check (Test-PackagePortal -Port $port -Demo $true) 'portal identity matches demo mode'
+  Check (-not (Test-PackagePortal -Port $port -Demo $false)) 'demo portal cannot be reused as a real portal'
   Check ($s.demo -eq $true) 'status says demo when started with --demo'
   Check (@($s.apps).Count -eq 4) 'status lists four applications'
   Check ((@($s.apps | Where-Object { $_.port -and $null -ne $_.ok })).Count -eq 4) 'each entry has a port and a health result'
@@ -68,6 +70,11 @@ $vt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'scenari
 Check ($LASTEXITCODE -eq 0) 'the verifier fails when the applications disagree and passes when they agree'
 $bt = & (Get-Command node).Source --test (Join-Path $script:PackageRoot 'portal\backup.test.mjs') 2>&1
 Check ($LASTEXITCODE -eq 0) 'back up everything counts only a rehearsed backup and names the application that failed'
+foreach ($testFile in @('portal\pair.test.mjs', 'ready\check.test.mjs')) {
+  $result = & (Get-Command node).Source --test (Join-Path $script:PackageRoot $testFile) 2>&1
+  Check ($LASTEXITCODE -eq 0) "${testFile}: pairing and readiness regressions"
+  if ($LASTEXITCODE -ne 0) { $result | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" } }
+}
 
 Write-Host '== scenario engine (mini run: five days, one model, the real applications)'
 $mesServer = Join-Path (Split-Path -Parent $script:PackageRoot) 'GMES\apps\mes-server'
@@ -99,6 +106,14 @@ if ((Test-Path -LiteralPath (Join-Path $gmesRoot 'node_modules')) -and (Test-Pat
   Check ($ready -match 'READY SMOKE: PASSED') 'an installation on a demonstration password is not ready; one with its own password, paired, is ready'
   if ($ready -notmatch 'READY SMOKE: PASSED') { $ready | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" } }
 } else { Write-Host '  skip  GMES packages or Mizan build missing' -ForegroundColor Yellow }
+Write-Host '== four-application backup rehearsal'
+$plannerDist = Join-Path (Split-Path -Parent $script:PackageRoot) '3D-Modeling\apps\server\dist\server.mjs'
+if ((Test-Path -LiteralPath $plannerDist) -and (Test-Path -LiteralPath $mizanDist) -and (Test-Path -LiteralPath (Join-Path $gmesRoot 'node_modules'))) {
+  Push-Location (Join-Path $gmesRoot 'apps\mes-server')
+  try { $four = & (Get-Command node).Source --disable-warning=ExperimentalWarning --import tsx (Join-Path $script:PackageRoot 'portal\backup-smoke.mjs') 2>&1 } finally { Pop-Location }
+  Check ($four -match 'FOUR APP BACKUP SMOKE: PASSED') 'all four applications answer and make rehearsed backups; the live planner project is preserved'
+  if ($four -notmatch 'FOUR APP BACKUP SMOKE: PASSED') { $four | Select-Object -Last 12 | ForEach-Object { Write-Host "    $_" } }
+} else { Write-Host '  skip  planner/Mizan build or GMES packages missing' -ForegroundColor Yellow }
 Write-Host ''
 if ($failures.Count) { Write-Host "$($failures.Count) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host 'ALL GREEN' -ForegroundColor Green

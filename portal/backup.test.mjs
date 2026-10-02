@@ -62,12 +62,26 @@ test('an application that is down or refuses the sign-in fails alone; the others
   } finally { await g.close(); }
 });
 
-test('an application without an address or a login is left out, and nothing at all is not a success', async () => {
+test('a configured application without a login fails, and nothing at all is not a success', async () => {
   const g = await fake('gmes_sid', '/api/auth/login', '/api/system/backups', () => ({ body: { name: 'gmes-1.db', rehearsal: { ok: true } } }));
   try {
     const r = await backupAll({ urls: { gmes: g.url, hr: 'http://127.0.0.1:9' }, logins: { gmes: logins.gmes } });
-    assert.deepEqual(r.results.map((x) => x.key), ['gmes']);
-    assert.equal(r.ok, true);
+    assert.deepEqual(r.results.map((x) => x.key), ['gmes', 'hr']);
+    assert.equal(r.ok, false);
+    assert.match(r.results[1].detail, /credentials/);
     assert.equal((await backupAll({ urls: {}, logins: {} })).ok, false);
   } finally { await g.close(); }
+});
+
+test('Space Planner participates without credentials and requires a passing rehearsal', async () => {
+  const server = createServer((req, res) => {
+    assert.equal(req.url, '/api/backups'); assert.equal(req.method, 'POST');
+    res.writeHead(201, { 'content-type': 'application/json' });
+    res.end(JSON.stringify({ name: 'planner-snapshot.db', rehearsal: { ok: true } }));
+  });
+  await new Promise(r => server.listen(0, '127.0.0.1', r));
+  try {
+    const r = await backupAll({ urls: { space: `http://127.0.0.1:${server.address().port}` }, logins: {} });
+    assert.equal(r.ok, true); assert.equal(r.results[0].key, 'space');
+  } finally { server.closeAllConnections(); await new Promise(r => server.close(r)); }
 });

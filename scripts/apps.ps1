@@ -23,3 +23,20 @@ function Test-PortOpen {
   catch { return $false }
   finally { $client.Dispose() }
 }
+
+function Test-PackagePortal {
+  param([int]$Port, [bool]$Demo)
+  try {
+    $identity = Invoke-RestMethod "http://127.0.0.1:$Port/api/identity" -TimeoutSec 3
+    return $identity.application -eq 'complete-company' -and $identity.demo -eq $Demo
+  } catch { return $false }
+}
+
+function Open-PackageChrome {
+  param([string]$Url)
+  $helpers = @('d:\WORK\Software Development\GitHub\AI CREW\Mandatory To Use Skills\windows-chrome-launcher\scripts\open_chrome.py', "$env:USERPROFILE\.codex\skills\windows-chrome-launcher\scripts\open_chrome.py")
+  $helper = $helpers | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1
+  if (-not $helper) { throw 'The required Chrome launcher helper was not found. The portal URL is printed above.' }
+  & python $helper $Url
+  if ($LASTEXITCODE -ne 0) { throw 'The Chrome launcher failed. The portal URL is printed above.' }
+}

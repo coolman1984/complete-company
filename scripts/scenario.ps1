@@ -14,7 +14,7 @@
 #>
 param(
   [ValidateSet('build', 'mini', 'ceramic', 'ceramic-mini', 'show', 'pack')][string]$Action = 'build',
-  [string]$From, [string]$To, [double]$Scale = 0.04, [string]$Models, [string]$Name = 'nile-vision', [switch]$NoHr
+  [string]$From, [string]$To, [double]$Scale = 0.04, [string]$Models, [string]$Name = 'nile-vision', [string]$DataDir, [switch]$NoHr
 )
 $ErrorActionPreference = 'Stop'
 $pkg = Split-Path -Parent $PSScriptRoot
@@ -63,6 +63,7 @@ if ($Action -eq 'mini') {
   if ($Models) { $engineArgs += @('--models', $Models) }
 }
 if ($NoHr) { $engineArgs += '--no-hr' }
+if ($DataDir) { $out = [IO.Path]::GetFullPath($DataDir) }   # e.g. the live demo folder outside every repository
 $engineArgs += @('--out', $out)
 
 Push-Location $mesServer   # tsx lives here: GMES is TypeScript

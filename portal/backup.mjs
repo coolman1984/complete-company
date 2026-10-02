@@ -9,21 +9,29 @@ export const APPS = [
   { key: 'mizan', name: 'Mizan', cookie: 'mizan_sid', login: (l) => ['POST', '/api/auth/login', { username: l.user, password: l.password }], backup: '/api/system/backups' },
   { key: 'gmes', name: 'Itqan', cookie: 'gmes_sid', login: (l) => ['POST', '/api/auth/login', { login: l.user, password: l.password }], backup: '/api/system/backups' },
   { key: 'hr', name: 'HR-System', cookie: 'hr_sid', login: (l) => ['POST', '/api/login', { username: l.user, password: l.password }], backup: '/api/admin/backups' },
+  { key: 'space', name: 'Space Planner', cookie: '', login: null, backup: '/api/backups' },
 ];
 
 /**
- * input: { urls: {mizan, gmes, hr}, logins: {mizan:{user,password}, ...} }. An application with no address or no login is left out.
+ * input: { urls: {mizan, gmes, hr, space}, logins: {mizan:{user,password}, ...} }. Every supplied address is checked.
+ * Space Planner uses its existing loopback protection and needs no login. Missing credentials are a failed backup.
  * Returns { ok, results: [{ key, name, ok, backup, detail }] }; ok only when every application asked made a backup that passed its rehearsal.
  */
 export async function backupAll({ urls, logins }) {
   const results = [];
   for (const app of APPS) {
     const url = urls?.[app.key], login = logins?.[app.key];
-    if (!url || !login?.user) continue;
+    if (!url) continue;
+    if (app.login && (!login?.user || !login?.password)) {
+      results.push({ key: app.key, name: app.name, ok: false, backup: null, detail: 'administrator credentials are required; no backup was made' });
+      continue;
+    }
     try {
       const call = session(url, app.cookie, 300_000);
-      const [method, path, body] = app.login(login);
-      await call(method, path, body);
+      if (app.login) {
+        const [method, path, body] = app.login(login);
+        await call(method, path, body);
+      }
       const made = await call('POST', app.backup);
       const passed = made?.rehearsal?.ok === true;
       results.push({

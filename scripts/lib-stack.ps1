@@ -37,7 +37,7 @@ function Find-PythonExe {
   with their output in $LogDir (the test). Returns the started processes.
 #>
 function Start-StackServers {
-  param([string]$Root, [string]$DataRoot, [hashtable]$Ports, [string]$Company, [string]$LogDir, [switch]$Visible, [switch]$SkipHr, [switch]$SkipMizan)
+  param([string]$Root, [string]$DataRoot, [hashtable]$Ports, [string]$Company, [string]$LogDir, [switch]$Visible, [switch]$SkipHr, [switch]$SkipMizan, [ValidateSet('none', 'hr')][string]$PersonOwner = 'none')
   $node = (Get-Command node).Source
   $procs = @()
   $start = { param($file, $argLine, $dir, $tag)
@@ -52,7 +52,7 @@ function Start-StackServers {
 
   if ($Company) {
     $env:GMES_DATA_DIR = Join-Path $DataRoot 'gmes'; $env:GMES_PORT = [string]$Ports.gmes; $env:GMES_HOST = '127.0.0.1'; $env:GMES_COMPANY_ID = $Company
-    $env:GMES_OWNER = 'mizan'; $env:GMES_PERSON_OWNER = 'none'; $env:GMES_SECRETS = 'plain'
+    $env:GMES_OWNER = 'mizan'; $env:GMES_PERSON_OWNER = $PersonOwner; $env:GMES_SECRETS = 'plain'
     $procs += & $start $node '--disable-warning=ExperimentalWarning --import tsx src/main.ts' (Join-Path $Root 'GMES\apps\mes-server') 'gmes'
   }
   if (-not $SkipHr) {

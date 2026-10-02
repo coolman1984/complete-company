@@ -4,7 +4,7 @@
 // both applications run under the same company id and are paired, nothing refused (parked), nothing waiting in an outbox;
 // with --backup, every application makes a backup and passes its own rehearsal.
 import { pathToFileURL } from 'node:url';
-import { session } from '../portal/pair.mjs';
+import { session, HttpError } from '../portal/pair.mjs';
 import { backupAll } from '../portal/backup.mjs';
 import { client } from '../scenario/engine/client.mjs';
 import { verify } from '../scenario/verify/verify.mjs';
@@ -16,6 +16,7 @@ const APPS = [
   { key: 'mizan', name: 'Mizan', health: '/api/health', cookie: 'mizan_sid', login: (l) => ['POST', '/api/auth/login', { username: l.user, password: l.password }] },
   { key: 'gmes', name: 'Itqan', health: '/api/health', cookie: 'gmes_sid', login: (l) => ['POST', '/api/auth/login', { login: l.user, password: l.password }] },
   { key: 'hr', name: 'HR-System', health: '/api/info', cookie: 'hr_sid', login: (l) => ['POST', '/api/login', { username: l.user, password: l.password }] },
+  { key: 'space', name: 'Space Planner', health: '/api/health', login: null },
 ];
 
 export async function checkReadiness({ urls, logins, backup = false, demoLogins = DEMO_LOGINS }) {
@@ -32,14 +33,15 @@ export async function checkReadiness({ urls, logins, backup = false, demoLogins 
   if (checks.some((c) => !c.ok)) return { ok: false, checks };
 
   // a demonstration password still working means anyone who has seen a demo can sign in
-  for (const a of present) {
-    let accepted = null;
+  for (const a of present.filter(a => a.login)) {
+    let accepted = null, uncertain = null;
     for (const d of demoLogins) {
       const call = session(urls[a.key], a.cookie, 15_000);
       const [m, p, b] = a.login(d);
-      try { await call(m, p, b); accepted = d; break; } catch { /* refused: good */ }
+      try { await call(m, p, b); accepted = d; break; }
+      catch (e) { if (!(e instanceof HttpError) || e.status !== 401) { uncertain = e.message; break; } }
     }
-    add('Passwords', `${a.name} refuses the demonstration passwords`, accepted === null, accepted ? `${a.name} accepts ${accepted.user} / ${accepted.password}: change it before real data goes in` : '');
+    add('Passwords', `${a.name} refuses the demonstration passwords`, accepted === null && uncertain === null, accepted ? `${a.name} accepts ${accepted.user} / ${accepted.password}: change it before real data goes in` : uncertain ? `could not prove refusal: ${uncertain}` : '');
   }
 
   // the connections between the applications
@@ -51,7 +53,8 @@ export async function checkReadiness({ urls, logins, backup = false, demoLogins 
       await gm(...APPS[1].login(logins.gmes));
       let hr = null;
       if (urls.hr && logins?.hr) { hr = client(urls.hr, 'hr_sid', () => APPS[2].login(logins.hr)); await hr(...APPS[2].login(logins.hr)); }
-      const report = await verify({ mizan: mz, gmes: gm, hr: null });
+      if (urls.hr && !hr) throw new Error('HR address was supplied without its administrator login');
+      const report = await verify({ mizan: mz, gmes: gm, hr });
       for (const c of report.checks.filter((x) => x.area === 'Integration')) add('Connections', c.name, c.ok, c.detail);
     } catch (e) { add('Connections', 'the applications can be asked about their connections', false, e.message); }
   } else add('Connections', 'the applications can be asked about their connections', false, 'give --user and --password (and the Itqan login) so the check can sign in');
@@ -75,7 +78,7 @@ export function printReadiness(report, log = console.log) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
   const user = arg('--user', process.env.READY_USER), password = arg('--password', process.env.READY_PASSWORD);
-  const urls = { mizan: arg('--mizan'), gmes: arg('--gmes'), hr: arg('--hr') };
+  const urls = { mizan: arg('--mizan'), gmes: arg('--gmes'), hr: arg('--hr'), space: arg('--space') };
   const logins = {
     mizan: { user, password }, gmes: { user: arg('--itqan-user', user), password: arg('--itqan-password', password) },
     ...(urls.hr ? { hr: { user: arg('--hr-user', user), password: arg('--hr-password', password) } } : {}),

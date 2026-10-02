@@ -18,12 +18,21 @@
 param([ValidateSet('tv', 'ceramic')][string]$Scenario = 'tv', [switch]$Rebuild, [switch]$NoBrowser)
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\lib-stack.ps1"
+. "$PSScriptRoot\apps.ps1"
+if ((Test-PortOpen 4501) -and -not (Test-PackagePortal -Port 4501 -Demo $true)) { throw 'Port 4501 is occupied by another service or portal mode.' }
 $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $demo = @{
   tv      = @{ Folder = '_integrated-demo'; Company = 'Nile Vision Electronics'; Code = 'NILE'; Chain = 'scenario\chain\run.mjs' }
   ceramic = @{ Folder = '_ceramic-demo';    Company = 'Demo Ceramics Co.';       Code = 'DCER'; Chain = 'scenario\ceramic\run.mjs' }
 }[$Scenario]
 $data = Join-Path $root $demo.Folder
+function Remove-DemoData {
+  if (-not (Test-Path -LiteralPath $data)) { return }
+  $resolved = (Resolve-Path -LiteralPath $data).Path
+  $allowed = @((Join-Path $root '_integrated-demo'), (Join-Path $root '_ceramic-demo')) | ForEach-Object { [IO.Path]::GetFullPath($_) }
+  if ($resolved -notin $allowed -or ((Get-Item -LiteralPath $resolved).Attributes -band [IO.FileAttributes]::ReparsePoint)) { throw "Refusing unexpected demo cleanup target: $resolved" }
+  Remove-Item -LiteralPath $resolved -Recurse -Force
+}
 $marker = Join-Path $data 'built.json'
 $ports = @{ mizan = 4810; gmes = 4701; hr = 8790 }
 $password = 'Demo-2026!'
@@ -46,7 +55,7 @@ if ($busy.Count -gt 0 -and ($Rebuild -or -not (Test-Path $marker))) {
   Write-Host "Ports $($busy -join ', ') are in use: close the running demo first." -ForegroundColor Red; exit 1
 }
 
-if ($Rebuild -and (Test-Path $data)) { Remove-Item -LiteralPath $data -Recurse -Force }
+if ($Rebuild -and (Test-Path $data)) { Remove-DemoData }
 
 if (-not (Test-Path $marker)) {
   Write-Host 'Building the integrated demo company (first time only) ...' -ForegroundColor Cyan
@@ -62,7 +71,7 @@ if (-not (Test-Path $marker)) {
   } catch {
     if ($stack) { foreach ($p in $stack.Procs) { if ($p -and -not $p.HasExited) { Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue } } }
     Start-Sleep -Seconds 1
-    Remove-Item -LiteralPath $data -Recurse -Force -ErrorAction SilentlyContinue
+    Remove-DemoData
     throw
   }
 } else {
@@ -81,12 +90,12 @@ if (-not (Test-Path $marker)) {
 }
 
 # ---- the portal
-if (-not (Test-Port 4500)) {
-  $portalArgs = "`"$(Join-Path $root 'complete-company\portal\server.mjs')`" --port 4500 --demo"
+if (-not (Test-Port 4501)) {
+  $portalArgs = "`"$(Join-Path $root 'complete-company\portal\server.mjs')`" --port 4501 --demo"
   Start-Process -FilePath $node -ArgumentList $portalArgs -WorkingDirectory (Join-Path $root 'complete-company') -WindowStyle Minimized | Out-Null
   Start-Sleep -Seconds 1
 }
 Write-Host ''
-Write-Host 'Portal:  http://127.0.0.1:4500/' -ForegroundColor Cyan
+Write-Host 'Portal:  http://127.0.0.1:4501/' -ForegroundColor Cyan
 Write-Host "Sign in to every application with  admin / $password" -ForegroundColor Cyan
-if (-not $NoBrowser) { Start-Process 'http://127.0.0.1:4500/' }
+if (-not $NoBrowser) { Open-PackageChrome 'http://127.0.0.1:4501/' }

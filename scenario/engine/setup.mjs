@@ -28,7 +28,7 @@ export async function setupMizan({ mz, book, log }) {
     const usd = it.purchase_currency === 'USD';
     const price = it.purchase_price == null ? 0 : cents(usd ? it.purchase_price * book.company.plan_fx : it.purchase_price);
     item[it.code] = (await mz('POST', '/api/items', {
-      sku: it.code, nameEn: it.name_en.slice(0, 200), nameAr: it.name_en.slice(0, 200), kind: it.nonstock ? 'service' : 'product', unit: it.uom, trackStock: !it.nonstock,
+      sku: it.code, nameEn: it.name_en.slice(0, 200), nameAr: (it.name_ar ?? it.name_en).slice(0, 200), kind: it.nonstock ? 'service' : 'product', unit: it.uom, trackStock: !it.nonstock,
       salePrice: it.type === 'finished' ? cents(it.sell_in_egp) : 0, purchasePrice: price, tracking: trackingOf(it),
       materialType: MATERIAL[it.type] ?? null, procurementType: it.procurement, leadTimeDays: it.lead_time_days ?? 0,
       moq: Math.round((it.moq || 0) * U), safetyStock: Math.round((it.safety_stock || 0) * U), lotSizeRule: it.lot_rule ?? 'lot_for_lot', lotSize: it.lot_rule === 'lot_for_lot' ? 0 : Math.round((it.lot_size || 0) * U),

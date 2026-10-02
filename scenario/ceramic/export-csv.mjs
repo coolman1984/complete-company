@@ -5,14 +5,18 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildCeramicBook } from '../gen/ceramic.mjs';
+import { validateCeramicBook } from './quality.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
-const outArg = process.argv.indexOf('--out');
-const out = resolve(outArg > 0 ? process.argv[outArg + 1] : join(here, '..', '..', 'import', 'ceramic'));
-const book = buildCeramicBook();
-const q = (v) => { const s = v == null ? '' : String(v); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+const q = (v) => { const s = v == null ? '' : String(v); return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
 const csv = (header, rows) => [header.join(','), ...rows.map((r) => r.map(q).join(','))].join('\n') + '\n';
 const days = (terms) => ({ NET15: 15, NET30: 30, NET45: 45, NET60: 60 }[terms] ?? 30);
+/** Export only to the explicitly selected directory; importing this module writes nothing. */
+export function exportCeramicCsv(out, book = buildCeramicBook()) {
+if (!out) throw new Error('An export directory is required');
+const report = validateCeramicBook(book);
+if (!report.ok) throw new Error(`Invalid ceramic data: ${report.problems.join('; ')}`);
+out = resolve(out);
 mkdirSync(out, { recursive: true });
 
 writeFileSync(join(out, 'parties.csv'), csv(['kind', 'code', 'name', 'payment_terms_days', 'credit_limit'], [
@@ -28,5 +32,13 @@ writeFileSync(join(out, 'boms.csv'), csv(['item', 'component', 'qty_per', 'op', 
   Object.entries(book.boms).flatMap(([item, b]) => b.lines.map((l) => [item, l.component, l.qty_per, l.op, l.scan]))));
 const mandatory = new Set(['PR', 'GL', 'SP']);
 writeFileSync(join(out, 'routings.csv'), csv(['item', 'seq', 'op', 'name', 'kind', 'cycle_s', 'mandatory'],
-  Object.entries(book.routings).flatMap(([item, r]) => r.operations.map((o) => [item, o.seq, o.code, o.name, o.kind, '', mandatory.has(o.code) ? 'yes' : 'no']))));
-console.log(`wrote ${out}: ${book.suppliers.length + book.customers.length} parties, ${book.items.length} items, ${book.plant.length} plant nodes, ${Object.keys(book.routings).length} routings, ${Object.keys(book.boms).length} bills of materials`);
+  Object.entries(book.routings).flatMap(([item, r]) => r.operations.map((o) => [item, o.seq, o.code, o.name, o.kind, o.cycle_s, mandatory.has(o.code) ? 'yes' : 'no']))));
+return { out, ...report.counts };
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const outArg = process.argv.indexOf('--out');
+  if (outArg > 0 && !process.argv[outArg + 1]) throw new Error('--out needs a directory');
+  const result = exportCeramicCsv(outArg > 0 ? process.argv[outArg + 1] : join(here, '..', '..', 'import', 'ceramic'));
+  console.log(`wrote ${result.out}: ${result.suppliers + result.customers} parties, ${result.items} items, ${result.plant} plant nodes, ${result.models} routings and bills of materials`);
+}

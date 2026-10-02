@@ -43,6 +43,10 @@ async function status() {
 
 const server = createServer(async (req, res) => {
   const path = new URL(req.url ?? '/', 'http://x').pathname;
+  if (req.method === 'GET' && path === '/api/identity') {
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
+    return res.end(JSON.stringify({ application: 'complete-company', demo }));
+  }
   if (req.method === 'GET' && (path === '/' || path === '/index.html')) {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(page);
@@ -89,7 +93,7 @@ const server = createServer(async (req, res) => {
     for await (const chunk of req) { raw += chunk; if (raw.length > 10_000) { res.writeHead(413); return res.end(); } }
     let body;
     try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end('json'); }
-    const out = await backupAll({ urls: { mizan: urlOf('mizan'), gmes: urlOf('gmes'), hr: urlOf('hr') }, logins: body.logins ?? {} });
+    const out = await backupAll({ urls: { mizan: urlOf('mizan'), gmes: urlOf('gmes'), hr: urlOf('hr'), space: urlOf('space') }, logins: body.logins ?? {} });
     res.writeHead(200, { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' });
     return res.end(JSON.stringify(out));
   }

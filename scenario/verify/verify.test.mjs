@@ -10,7 +10,7 @@ function stack(over = {}) {
   const data = {
     company: { mizan: COMPANY, gmes: COMPANY },
     parked: { mizan: [], gmes: [] },
-    peers: { mizan: [{ name: 'gmes', active: true, cursor: 5 }], gmes: [{ name: 'mizan', active: true, cursor: 9 }] },
+    peers: { mizan: [{ name: 'gmes', active: true, push: true, push_cursor: 5 }], gmes: [{ name: 'mizan', active: true, cursor: 9 }] },
     events: { mizan: [{ seq: 5 }], gmes: [{ seq: 9 }] },
     orders: [{ code: 'WO-1', completed_qty: '10' }],
     wip: [{ code: 'WO-1', status: 'closed', received_qty: 10000, issued_value: 500, received_value: 500 }],
@@ -21,6 +21,7 @@ function stack(over = {}) {
     reqs: [{ mrp_run: 'RUN-1' }],
     wos: [{ planned_order_id: 'PO-1' }],
     invoices: [{ id: 1, status: 'posted' }],
+    deliveries: [{ id: 1, lines: [{ id: 1, qty: 10000, invoiced_qty: 10000 }] }],
     ...over,
   };
   const mizan = async (_m, path) => {
@@ -33,7 +34,12 @@ function stack(over = {}) {
     if (path === '/api/items') return data.items;
     if (path === '/api/inventory/levels') return data.levels;
     if (path === '/api/purchase-requisitions') return data.reqs;
-    if (path.startsWith('/api/documents?kind=sales_invoice')) return { rows: data.invoices };
+    if (path.startsWith('/api/documents?kind=sales_invoice')) { const offset = Number(new URL(path, 'http://test').searchParams.get('offset')); return { rows: data.invoices.slice(offset, offset + 200), total: data.invoices.length }; }
+    if (path.startsWith('/api/sales/deliveries?')) { const offset = Number(new URL(path, 'http://test').searchParams.get('offset')); return { rows: data.deliveries.slice(offset, offset + 200), total: data.deliveries.length }; }
+    if (path.startsWith('/api/sales/deliveries/')) return data.deliveries.find(d => d.id === Number(path.split('/').at(-1)));
+    if (path.startsWith('/api/payments?')) return data.payments ?? [];
+    if (path.startsWith('/api/inventory/receipts?')) return data.receipts ?? [];
+    if (path.startsWith('/api/inventory/reports/grni')) return data.grni ?? { open: 0, ledger: 0, rows: [] };
     throw new Error('unexpected ' + path);
   };
   const gmes = async (_m, path) => {
@@ -69,10 +75,28 @@ test('a parked event on either side fails', async () => {
 });
 
 test('a peer that has not caught up, or no peer at all, means the outbox is not drained', async () => {
-  const behind = await verify({ ...stack({ peers: { mizan: [{ name: 'gmes', active: true, cursor: 5 }], gmes: [{ name: 'mizan', active: true, cursor: 4 }] } }) });
+  const behind = await verify({ ...stack({ peers: { mizan: [{ name: 'gmes', active: true, push: true, push_cursor: 5 }], gmes: [{ name: 'mizan', active: true, cursor: 4 }] } }) });
   assert.deepEqual(failing(behind), ["GMES's outbox is drained"]);
   const none = await verify({ ...stack({ peers: { mizan: [], gmes: [{ name: 'mizan', active: true, cursor: 9 }] } }) });
   assert.deepEqual(failing(none), ["Mizan's outbox is drained"]);
+});
+
+test('Mizan push cursor, absent cursor and pull-only peers cannot falsely prove delivery', async () => {
+  for (const peer of [{ push: true, push_cursor: 4 }, { push: true, cursor: 5 }, { push: false, pull_cursor: 5 }]) {
+    const r = await verify({ ...stack({ peers: { mizan: [{ name: 'gmes', active: true, ...peer }], gmes: [{ name: 'mizan', active: true, cursor: 9 }] } }) });
+    assert.ok(failing(r).includes("Mizan's outbox is drained"));
+  }
+});
+
+test('missing or partial posted invoice coverage fails even with no drafts, including later pages', async () => {
+  for (const qty of [0, 9000]) {
+    const deliveries = Array.from({ length: 201 }, (_, i) => ({ id: i + 1, lines: [{ id: i + 1, qty: 10000, invoiced_qty: i === 200 ? qty : 10000 }] }));
+    const r = await verify({ ...stack({ deliveries }) });
+    assert.deepEqual(failing(r), ['every delivered sales order line is on an invoice that was posted (no draft left)']);
+    assert.match(r.checks.find(c => !c.ok).detail, /delivery 201/);
+  }
+  const invoices = Array.from({ length: 201 }, (_, i) => ({ id: i + 1, status: i === 200 ? 'draft' : 'posted' }));
+  assert.equal((await verify({ ...stack({ invoices }) })).ok, false);
 });
 
 test('a quantity that differs between GMES and Mizan names both numbers', async () => {
@@ -86,6 +110,11 @@ test('a quantity that differs between GMES and Mizan names both numbers', async 
 test('work in progress left after a close, or an unbalanced trial balance, fails', async () => {
   assert.deepEqual(failing(await verify({ ...stack({ wip: [{ code: 'WO-1', status: 'closed', received_qty: 10000, issued_value: 500, received_value: 400 }] }) })), ['a closed work order leaves nothing in work in progress']);
   assert.deepEqual(failing(await verify({ ...stack({ trial: { balanced: false, totals: { debit: 100, credit: 90 } } }) })), ["Mizan's trial balance is balanced"]);
+});
+
+test('goods received but not invoiced that differ from the ledger fail', async () => {
+  const grni = { open: 500, ledger: 400, rows: [{ value: 500, billed_value: 0, base_quantity: 1000, billed_base: 0 }] };
+  assert.deepEqual(failing(await verify({ ...stack({ grni }) })), ['supplier receipts reconcile with received-not-invoiced accounting']);
 });
 
 test('finished goods that differ between GMES and Mizan, negative stock, unsourced planning, a draft invoice and a missed service level all fail', async () => {

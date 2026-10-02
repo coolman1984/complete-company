@@ -6,6 +6,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { readTable } from './csv.mjs';
+import { allRows } from '../scenario/verify/verify.mjs';
 
 const U = 1000;
 export const TYPES = ['raw', 'semi', 'finished', 'packaging', 'service'];
@@ -57,10 +58,11 @@ export function validate(tables) {
   for (const r of tables.parties.records) {
     const kind = oneOf('parties', r, 'kind', ['supplier', 'customer']);
     if (!r.name) bad('parties', r, 'name is required');
+    if (r.code && r.code.length > 30) bad('parties', r, 'code is longer than 30 characters');
     const key = `${kind}|${(r.code || r.name).toLowerCase()}`;
     if (partySeen.has(key)) bad('parties', r, `${kind} "${r.code || r.name}" appears twice`);
     partySeen.add(key);
-    parties.push({ line: r._line, kind, code: r.code || r.name, name: r.name, terms: num('parties', r, 'payment_terms_days', { int: true }) ?? 30, credit: num('parties', r, 'credit_limit') });
+    parties.push({ line: r._line, kind, code: r.code || r.name, explicitCode: !!r.code, name: r.name, terms: num('parties', r, 'payment_terms_days', { int: true }) ?? 30, credit: num('parties', r, 'credit_limit') });
   }
   const suppliers = new Set(parties.filter((p) => p.kind === 'supplier').map((p) => p.code));
 
@@ -206,12 +208,19 @@ export async function apply(model, { mz, gm, pump, log = () => {} }) {
   const count = (kind, what) => { (done[what][kind] = done[what][kind] ?? 0); done[what][kind]++; };
   const mizanId = {}, partyId = {};
   if (mz) {
-    const existingParties = await mz('GET', '/api/parties');
-    const list = Array.isArray(existingParties) ? existingParties : existingParties.rows ?? [];
+    const list = await allRows(mz, '/api/parties');
     for (const p of model.parties) {
-      const have = list.find((x) => x.name === p.name);
-      if (have) { partyId[`${p.kind}|${p.code}`] = have.id; count('parties', 'skipped'); continue; }
-      partyId[`${p.kind}|${p.code}`] = (await mz('POST', '/api/parties', { kind: p.kind, name: p.name, paymentTermsDays: paymentDays(p.terms), ...(p.credit ? { creditLimit: cents(p.credit) } : {}) })).id;
+      const candidates = list.filter((x) => (x.kind === p.kind || x.kind === 'both') && (p.explicitCode !== false ? x.code === p.code : x.name === p.name));
+      if (candidates.length > 1) throw new Error(`ambiguous ${p.kind} ${p.code}: ${candidates.length} existing parties`);
+      const have = candidates[0];
+      if (have) {
+        partyId[`${p.kind}|${p.code}`] = have.id;
+        if (have.name !== p.name || have.payment_terms_days !== p.terms || (p.credit !== undefined && have.credit_limit !== cents(p.credit))) done.notes.push(`${p.kind} ${p.code}: existing values differ; kept unchanged`);
+        count('parties', 'skipped'); continue;
+      }
+      const created = await mz('POST', '/api/parties', { kind: p.kind, ...(p.explicitCode !== false ? { code: p.code } : {}), name: p.name, paymentTermsDays: paymentDays(p.terms), ...(p.credit !== undefined ? { creditLimit: cents(p.credit) } : {}) });
+      partyId[`${p.kind}|${p.code}`] = created.id;
+      list.push({ ...created, kind: p.kind, code: p.explicitCode !== false ? p.code : null, name: p.name });
       count('parties', 'created');
     }
     const exItems = await mz('GET', '/api/items');

@@ -47,6 +47,8 @@ async function drain(pump, mz, gm) {
 say(`${book.company.name} scenario ${book.meta.window.from}..${book.meta.window.to}, scale ${book.meta.scale}, models ${book.meta.models.join(',')}`);
 const h = await host({ root, out, company: { name: book.company.name, code: book.company.code }, startDay: book.meta.window.from, hr: withHr });
 let result = null;
+// the marker that says this folder is DEMO data: the sign-in helper (scenario/ceramic/set-logins.*) refuses any folder without it, and the launcher needs the company id
+writeFileSync(join(out, 'company.json'), JSON.stringify({ demo: true, company: h.company, name: book.company.name, code: book.company.code, window: book.meta.window, book: bookName, built: new Date().toISOString() }, null, 1));
 try {
   const { mizan: mz, gmes: gm, hr } = h.clients;
   const pump = async (n = 3) => { for (let i = 0; i < n; i++) { await mz('POST', '/api/eco/sync'); await gm('POST', '/api/eco/push'); } };

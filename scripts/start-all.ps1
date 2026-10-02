@@ -8,16 +8,21 @@
 .PARAMETER NoBrowser
   Do not open the portal in the browser.
 .PARAMETER PortalPort
-  Port of the portal page (default 4500).
+  Port of the portal page (real 4500, demo 4501).
 #>
 [CmdletBinding()]
 param(
   [switch]$Demo,
   [switch]$NoBrowser,
-  [int]$PortalPort = 4500
+  [int]$PortalPort = 0
 )
 $ErrorActionPreference = 'Stop'
 . "$PSScriptRoot\apps.ps1"
+if ($PortalPort -eq 0) { $PortalPort = $(if ($Demo) { 4501 } else { 4500 }) }
+if ($PortalPort -lt 1 -or $PortalPort -gt 65535) { throw 'PortalPort must be between 1 and 65535.' }
+if ((Test-PortOpen $PortalPort) -and -not (Test-PackagePortal -Port $PortalPort -Demo ([bool]$Demo))) {
+  throw "Port $PortalPort is occupied by another service or portal mode. Use a different -PortalPort or close that instance."
+}
 
 function Find-Python {
   foreach ($c in @($env:PYTHON, 'python', 'py')) {
@@ -51,12 +56,12 @@ foreach ($app in Get-PackageApps -Demo:$Demo) {
     # HR-System from source (the installed HR-System.exe starts with Windows on its own)
     $installed = Join-Path ${env:ProgramFiles} 'HR-System\HR-System.exe'
     if (Test-Path -LiteralPath $installed) {
-      Start-Process -FilePath $installed -WindowStyle Minimized
+      Start-Process -FilePath $installed -ArgumentList "--no-browser --port $($app.Port)" -WindowStyle Minimized
     } else {
       $python = Find-Python
       if (-not $python) { Write-Host "  $label needs Python 3.10+ (or install HR-System-Setup.exe). Skipped." -ForegroundColor Yellow; continue }
       $env:PYTHONPATH = Join-Path $app.Folder 'vendor.zip'
-      Start-Process -FilePath $python -ArgumentList "hr_main.py --port $($app.Port)" -WorkingDirectory $app.Folder -WindowStyle Minimized
+      Start-Process -FilePath $python -ArgumentList "hr_main.py --no-browser --port $($app.Port)" -WorkingDirectory $app.Folder -WindowStyle Minimized
     }
   } else {
     # cmd.exe mangles a quoted path followed by arguments; the launcher is run by name from its own folder instead.
@@ -83,5 +88,6 @@ if ($started.Count) { Write-Host '  The first start of an application builds it;
 if (-not $NoBrowser) {
   $deadline = (Get-Date).AddSeconds(15)
   while (-not (Test-PortOpen $PortalPort) -and (Get-Date) -lt $deadline) { Start-Sleep -Milliseconds 300 }
-  Start-Process $portal
+  if (-not (Test-PackagePortal -Port $PortalPort -Demo ([bool]$Demo))) { throw 'The expected portal did not start.' }
+  Open-PackageChrome $portal
 }

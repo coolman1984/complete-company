@@ -7,8 +7,8 @@ better together:
 |---|---|---|---|
 | **Mizan** | `coolman1984/Accounting-sys` | Company, accounts, items, warehouses, stock value, purchasing, costing | 4800 / 4810 |
 | **GMES** | `coolman1984/GMES` | Work orders, production facts, quality, OEE, packing and shipping, plant model | 4700 / 4701 |
-| **HR-System** | `coolman1984/HR-System` | People, organisation, shifts and schedule, attendance, skills | 8766 / 8790 |
-| **Space Planner** | `coolman1984/3D-Modeling` | 2D/3D layout of halls, lines, warehouses | 4600 |
+| **HR-System** | `coolman1984/HR-System` | People, organisation, shifts, attendance, skills and payroll | 8766 / 8790 |
+| **Space Planner** | `coolman1984/3D-Modeling` | 2D/3D layout of halls, lines, warehouses and loading | 4600 / 4601 |
 
 This repository holds what belongs to the **package**, not to any one application:
 the one-click launcher, the portal page, and the integration review and plan.
@@ -34,12 +34,17 @@ Complete Company\
 |---|---|
 | `Start-Integrated-Demo.bat` | **The applications connected**: Mizan, GMES and HR-System under one company, already paired, with the result of a whole business chain (S&OP + sales order → planning → purchase → receiving and inspection → serial production → packing and dispatch → delivery, invoice, payment → HR staffing gap). First run builds it (about two minutes). Sign in to every application with `admin / Demo-2026!`. Data: `..\_integrated-demo` |
 | `Start-Ceramic-Demo.bat` | The same connected applications as a **ceramic-tile factory** (Demo Ceramics Co.): one distributor order of 1,440 m² from demand to cash — MRP, purchasing, a wrong-shade glaze lot stopped at incoming inspection, production by shade lot with losses by reason and a kiln stoppage, cost through WIP, delivery of one shade only, invoice, payment, staffing gap. Small data, first run about a minute. Presentation script: `scenario/ceramic/STORYBOARD.md`. Data: `..\_ceramic-demo`. Run one demo company at a time (same ports). |
+| `Start-Ceramic-Showreel.bat` | **The showreel**: three months of Demo Ceramics Co. (1 Jul – 2 Oct 2026) played through Mizan, Itqan and HR-System, then the three applications opened with their own screens on that data (213 sales orders, 515 work orders, 170 employees, three pay runs booked by Mizan, all checks green). Sign in to every application with **admin / 123** (HR also `hr.officer / 123` calculates pay, `hr.approver / 123` approves it). Portal http://127.0.0.1:4501/, Mizan :4810, Itqan :4701, HR :8790. First run builds the data (about 4 minutes); `-Rebuild` plays it again. `node scenario\ceramic\showreel-check.mjs` proves the three agree; `node scenario\ceramic\ui-review.mjs` opens every screen in Chrome and reports any that fails. Data: `..\_ceramic-live`. |
 | `Start-Complete-Company.bat` | The four applications with their **real** data, each in its own window, and the portal at http://127.0.0.1:4500/ |
-| `Start-Complete-Company-Demo.bat` | The **demonstration** copies (own data folders and ports), sign in everywhere with **admin / 123** |
+| `Start-Complete-Company-Demo.bat` | The **demonstration** copies (own data folders and ports), portal at http://127.0.0.1:4501/. The three business apps use **admin / 123**; Space Planner runs locally without a sign-in. |
 
 An application that is already running is left alone. Closing an application's window stops only that
 application. Needs Node.js 22.13+ (Mizan, GMES, Space Planner) and Python 3.10+ for HR-System from source
 (the installed `HR-System.exe` is used when present).
+
+Real and demo portals validate their mode before reuse. Space Planner's demonstration keeps its projects in
+`3D-Modeling/data-demo`. Package launchers open Google Chrome through the required Windows launcher helper;
+`-NoBrowser` suppresses the portal opening and the planner launcher receives `--no-open`.
 
 The portal shows one tile per application with a health light (it asks each application's public health
 address every 5 seconds) and switches between English and Arabic.
@@ -60,6 +65,33 @@ pwsh -File scripts\test.ps1
 
 checks `apps.json` (both languages, unique ports, real and demo never share a port), that every launcher it
 names exists in the sibling folders, and that the portal answers.
+
+The package regression suite also covers actual Mizan/Itqan/HR scenarios, payroll posting, repeat pairing,
+party import identity/pagination, posted delivery-line invoice coverage, and readiness failures. The readiness
+check includes Space Planner when its URL is supplied; `Check-Ready.ps1` supplies all four configured URLs.
+
+## Recovery and backups
+
+The portal's **Back up everything** asks all four configured applications to save and rehearse their own copy.
+Missing business-app administrator credentials are a failed result. Space Planner uses its existing local
+server protection and `/api/backups`, with snapshots in the selected data folder's `backups` directory.
+Restore steps for planner projects, revisions, settings and agent history are in
+`3D-Modeling/docs/decisions/0025-bounded-shipment-planning-and-demo.md`. Snapshots can contain credentials;
+Windows-protected keys require re-entry when restoring under another Windows account or machine.
+
+Pairing updates existing peer records, preserving delivery cursors. Each attempt uses unique package key names;
+previous package keys are retired after a successful exchange. A failure lists the exact step; rerun after
+repairing its cause. The wizard also checks HR's company identity and exchanges its people/schedule data.
+
+For refused integration events, repair the reported prerequisite, then call
+`POST /api/eco/peers/:id/retry-parked` in the sender with
+`{"eventIds":["original-event-id"],"reason":"prerequisite repaired"}` using its normal administrator session.
+Only events parked for that peer are eligible. The original envelopes and identities are retained;
+recovery is audited and earlier facts for the same work order must succeed first. The verifier checks
+unresolved refusals and sending cursors; a missing cursor cannot count as delivered.
+
+The dated review and repair status are in the parent workspace's `PROJECT_REVIEW_2026-10-02.md` and
+`PROJECT_FIX_STATUS_2026-10-02.md`.
 
 ## Files
 

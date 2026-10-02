@@ -5,10 +5,32 @@ import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseCsv, readTable } from './csv.mjs';
-import { loadFolder, validate } from './masters.mjs';
+import { loadFolder, validate, apply } from './masters.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const templates = () => loadFolder(join(here, 'templates'));
+
+test('apply matches party code and kind across all pages and preserves supplier identity', async () => {
+  const parties = Array.from({ length: 201 }, (_, i) => ({ id: i + 1, kind: 'customer', code: `C${i}`, name: 'Shared name' }));
+  parties.push({ id: 202, kind: 'supplier', code: 'SUP', name: 'Shared name', payment_terms_days: 30 });
+  const calls = [];
+  const mz = async (method, path, body) => {
+    calls.push({ method, path, body });
+    if (method === 'GET' && path.startsWith('/api/parties?')) { const offset = Number(new URL(path, 'http://x').searchParams.get('offset')); return { rows: parties.slice(offset, offset + 200), total: parties.length }; }
+    if (path === '/api/items') return [];
+    if (path === '/api/parties' && method === 'POST') return { id: 203 };
+    throw new Error('unexpected ' + path);
+  };
+  const model = { parties: [{ kind: 'supplier', code: 'SUP', name: 'Shared name', terms: 30 }, { kind: 'customer', code: 'NEW', name: 'Shared name', terms: 30, credit: 0 }], items: [] };
+  const r = await apply(model, { mz });
+  assert.equal(r.skipped.parties, 1);
+  assert.equal(r.created.parties, 1);
+  const made = calls.find(c => c.method === 'POST');
+  assert.equal(made.body.code, 'NEW');
+  assert.equal(made.body.kind, 'customer');
+  assert.equal(made.body.creditLimit, 0);
+  assert.equal(calls.filter(c => c.path.startsWith('/api/parties?')).length, 2);
+});
 /** The shipped templates with one file replaced by `rows` (header first). */
 const withFile = (name, text) => loadFolder('x', (n) => (n === `${name}.csv` ? text : readFileSync(join(here, 'templates', n), 'utf8')));
 const messages = (r) => r.problems.map((p) => `${p.file}:${p.line} ${p.message}`);
