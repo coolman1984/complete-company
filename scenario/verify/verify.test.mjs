@@ -99,6 +99,13 @@ test('finished goods that differ between GMES and Mizan, negative stock, unsourc
   assert.deepEqual(failing(await verify({ ...stack(), kpi: [{ name: 'on time', value: 90, range: [70, 100] }] })), []);
 });
 
+test('a plant that ships by lot (no pallet specifications) has no finished-goods stock to compare: that is not a difference', async () => {
+  const report = await verify({ ...stack({ fg: [], specs: [], levels: {} }) });
+  assert.deepEqual(failing(report), []);
+  // but a product that does have a specification and differs still fails
+  assert.deepEqual(failing(await verify({ ...stack({ fg: [{ code: 'TV', loose: 5, open: 0, closed: 0, loaded: 0 }], levels: { 7: 3000 } }) })), ["finished goods in GMES (not yet shipped) = Mizan's stock, per product"]);
+});
+
 test('nothing to compare is a failure, not a pass', async () => {
   const report = await verify({ ...stack({ orders: [], wip: [] }) });
   assert.ok(failing(report).includes('GMES completed = Mizan received, per work order'));

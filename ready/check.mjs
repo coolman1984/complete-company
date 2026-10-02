@@ -3,6 +3,7 @@
 // Checks: every application answers; none still accepts a known demonstration password (one try each, then it stops);
 // both applications run under the same company id and are paired, nothing refused (parked), nothing waiting in an outbox;
 // with --backup, every application makes a backup and passes its own rehearsal.
+import { pathToFileURL } from 'node:url';
 import { session } from '../portal/pair.mjs';
 import { backupAll } from '../portal/backup.mjs';
 import { client } from '../scenario/engine/client.mjs';
@@ -71,7 +72,7 @@ export function printReadiness(report, log = console.log) {
   log(report.ok ? 'READY: every check passed.' : `NOT READY: ${report.checks.filter((c) => !c.ok).length} check(s) failed.`);
 }
 
-if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file://').href) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const arg = (n, d) => { const i = process.argv.indexOf(n); return i > 0 ? process.argv[i + 1] : d; };
   const user = arg('--user', process.env.READY_USER), password = arg('--password', process.env.READY_PASSWORD);
   const urls = { mizan: arg('--mizan'), gmes: arg('--gmes'), hr: arg('--hr') };

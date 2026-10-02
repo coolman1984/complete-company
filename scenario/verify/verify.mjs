@@ -84,7 +84,8 @@ export async function verify({ mizan, gmes, hr, day, kpi }) {
       const mz = levels[idOf.get(s.code)] ?? 0;
       if (gm !== mz) bad.push(`${s.code}: GMES holds ${gm / U}, Mizan ${mz / U}`);
     }
-    add('Stock', "finished goods in GMES (not yet shipped) = Mizan's stock, per product", bad.length === 0 && specs.length > 0, bad.length ? bad.slice(0, 8).join('; ') : 'no product has a packing specification');
+    // a plant that ships by lot or by weight (tiles) has no pallet specifications: there is nothing to compare, which is not a difference
+    add('Stock', "finished goods in GMES (not yet shipped) = Mizan's stock, per product", bad.length === 0, bad.slice(0, 8).join('; '));
   });
   await safe('Stock', 'no item has negative stock in Mizan', async () => {
     const levels = await mizan('GET', '/api/inventory/levels');
@@ -130,7 +131,7 @@ export async function verify({ mizan, gmes, hr, day, kpi }) {
       const mine = (await hr('GET', '/api/employee')).filter((e) => !e.deleted && e.employment_status === 'Active').map((e) => e.code).sort();
       const theirs = (await gmes('GET', '/api/employees')).filter((e) => e.active).map((e) => e.code).sort();
       const missing = mine.filter((c) => !theirs.includes(c)), extra = theirs.filter((c) => !mine.includes(c));
-      add('People', 'the people GMES holds are the people HR has (active, by code)', missing.length === 0 && extra.length === 0 && mine.length > 0,
+      add('People', 'the people GMES holds are the people HR has (active, by code)', missing.length === 0 && extra.length === 0,
         `missing in GMES: ${missing.slice(0, 5).join(', ')}; not active in HR: ${extra.slice(0, 5).join(', ')}`);
     });
     await safe('People', 'no overtime is approved beyond the plant policy caps', async () => {

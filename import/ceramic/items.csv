@@ -1,0 +1,6 @@
+code,name_en,name_ar,type,uom,tracking,procurement,lead_time_days,moq,lot_rule,lot_size,safety_stock,supplier_code,purchase_price,sale_price,line
+TL-6060-WHT,"Porcelain tile 60x60 white, 1st grade",بورسلين ٦٠×٦٠ أبيض فرز أول,finished,M2,lot,make,1,0,lot_for_lot,0,0,,,320,L1
+CLAY-RED,Red clay,طفلة حمراء,raw,KG,lot,buy,7,0,lot_for_lot,0,0,S-CLAY,1.5,,
+FELDSPAR,Feldspar,فلسبار,raw,KG,lot,buy,7,0,lot_for_lot,0,0,S-CLAY,3,,
+GLZ-WHT,White glaze,جليز أبيض,raw,KG,lot,buy,10,0,lot_for_lot,0,0,S-GLZ,45,,
+CTN-60,Carton 60x60 (1.44 m2),كرتونة ٦٠×٦٠,packaging,PCS,lot,buy,5,0,lot_for_lot,0,0,S-GLZ,12,,

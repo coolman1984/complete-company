@@ -1,0 +1,9 @@
+code,type,parent,name,capacity_per_shift,crew
+CP1,plant,,Tile plant,,
+FL,area,CP1,Floor tiles,,
+L1,line,FL,Tile line 1,2500,
+L1-PR,station,L1,Pressing,,2
+L1-DR,station,L1,Drying,,2
+L1-GL,station,L1,Glazing,,2
+L1-KL,station,L1,Kiln firing,,2
+L1-SP,station,L1,Sorting and packing,,4

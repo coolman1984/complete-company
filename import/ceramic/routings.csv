@@ -1,0 +1,6 @@
+item,seq,op,name,kind,cycle_s,mandatory
+TL-6060-WHT,10,PR,Pressing,work,,yes
+TL-6060-WHT,20,DR,Drying,work,,no
+TL-6060-WHT,30,GL,Glazing,work,,yes
+TL-6060-WHT,40,KL,Kiln firing,work,,no
+TL-6060-WHT,50,SP,Sorting and packing,pack,,yes

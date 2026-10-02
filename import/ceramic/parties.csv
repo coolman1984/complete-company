@@ -1,0 +1,4 @@
+kind,code,name,payment_terms_days,credit_limit
+supplier,S-CLAY,Aswan Clay & Minerals,30,
+supplier,S-GLZ,Frit & Glaze Supplies,30,
+customer,C-DELTA,Delta Building Materials (distributor),45,2000000
