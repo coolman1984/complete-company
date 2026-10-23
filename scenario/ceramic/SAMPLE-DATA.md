@@ -2,7 +2,7 @@
 
 The owner's order of 2026-10-02: the trial on this laptop uses **no real data**, only a logical, rich, invented company. This is that
 company: **Demo Ceramics Co.** (code `DCER`), a tile factory. Every name, price, wage and quantity is made up, deterministic (same seed,
-same data) and written down in one file, `scenario/gen/ceramic.mjs`. The Space Planner keeps its own "Samsung Egypt" sample projects,
+same data) and written down in one file, `scenario/gen/ceramic.mjs`. The Space Planner keeps its own "Horizon Electronics" sample projects (an invented company),
 untouched.
 
 ## What is in it
